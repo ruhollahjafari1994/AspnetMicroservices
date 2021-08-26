@@ -120,6 +120,7 @@ docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
 - Web UI -> http://host.docker.internal:8006
 
 > 5 - Launch http://host.docker.internal:8007 in your browser to view the Web Status. Make sure that every microservices are healthy.
+
 > 6 - Launch http://host.docker.internal:8006 in your browser to view the Web UI. You can use Web project in order to call microservices over API Gateway. When you checkout the basket you can follow queue record on RabbitMQ dashboard.
 
 [![Build Status](https://user-images.githubusercontent.com/1147445/81381837-08226000-9116-11ea-9489-82645b8dbfc4.png)](https://www.linkedin.com/in/ruhollah-jafari/)
