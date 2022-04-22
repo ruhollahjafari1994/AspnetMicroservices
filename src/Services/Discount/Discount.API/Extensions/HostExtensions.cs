@@ -1,5 +1,4 @@
-﻿
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -36,7 +35,7 @@ namespace Discount.API.Extensions
                     //migration can't fail for network related exception. The retry options for database operations
                     //apply to transient exceptions                    
                     retry.Execute(() => ExecuteMigrations(configuration));
-
+                    
                     logger.LogInformation("Migrated postresql database.");
                 }
                 catch (NpgsqlException ex)
@@ -73,6 +72,6 @@ namespace Discount.API.Extensions
 
             command.CommandText = "INSERT INTO Coupon(ProductName, Description, Amount) VALUES('Samsung 10', 'Samsung Discount', 100);";
             command.ExecuteNonQuery();
-        }
+        }        
     }
 }

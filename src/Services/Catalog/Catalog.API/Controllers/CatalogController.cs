@@ -1,10 +1,10 @@
 ﻿using Catalog.API.Entities;
-using Catalog.API.Repositories;
+using Catalog.API.Repositories.Interfaces;
+using DnsClient.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -12,16 +12,17 @@ namespace Catalog.API.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class CatalogController :ControllerBase
+    public class CatalogController : ControllerBase
     {
         private readonly IProductRepository _repository;
         private readonly ILogger<CatalogController> _logger;
-        public CatalogController(IProductRepository repository ,ILogger<CatalogController> logger)
+
+        public CatalogController(IProductRepository repository, ILogger<CatalogController> logger)
         {
-            _repository = repository;
-            _logger = logger;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
-       
+
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Product>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
@@ -86,7 +87,7 @@ namespace Catalog.API.Controllers
             return Ok(await _repository.UpdateProduct(product));
         }
 
-        [HttpDelete("{id:length(24)}", Name = "DeleteProduct")]
+        [HttpDelete("{id:length(24)}", Name = "DeleteProduct")]        
         [ProducesResponseType(typeof(Product), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> DeleteProductById(string id)
         {
@@ -94,4 +95,3 @@ namespace Catalog.API.Controllers
         }
     }
 }
- 

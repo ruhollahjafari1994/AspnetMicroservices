@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "WebStatus": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:13926;http://localhost:13927"
+    }
+  }
+}

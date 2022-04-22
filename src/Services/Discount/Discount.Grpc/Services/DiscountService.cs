@@ -5,15 +5,12 @@ using Discount.Grpc.Repositories.Interfaces;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Discount.Grpc.Services
 {
     public class DiscountService : DiscountProtoService.DiscountProtoServiceBase
     {
-
         private readonly IDiscountRepository _repository;
         private readonly IMapper _mapper;
         private readonly ILogger<DiscountService> _logger;
