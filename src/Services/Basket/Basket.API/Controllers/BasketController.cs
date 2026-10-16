@@ -1,13 +1,14 @@
-﻿using AutoMapper;
 using Basket.API.Entities;
 using Basket.API.GrpcServices;
 using Basket.API.Repositories.Interfaces;
 using EventBus.Messages.Events;
-using MassTransit;
+using EventBus.Messages.Common;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Wolverine;
 
 namespace Basket.API.Controllers
 {
@@ -17,15 +18,13 @@ namespace Basket.API.Controllers
     {
         private readonly IBasketRepository _repository;
         private readonly DiscountGrpcService _discountGrpcService;
-        private readonly IPublishEndpoint _publishEndpoint;
-        private readonly IMapper _mapper;
+        private readonly IMessageBus _messageBus;
 
-        public BasketController(IBasketRepository repository, DiscountGrpcService discountGrpcService, IPublishEndpoint publishEndpoint, IMapper mapper)
+        public BasketController(IBasketRepository repository, DiscountGrpcService discountGrpcService, IMessageBus messageBus)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _discountGrpcService = discountGrpcService ?? throw new ArgumentNullException(nameof(discountGrpcService));
-            _publishEndpoint = publishEndpoint ?? throw new ArgumentNullException(nameof(publishEndpoint));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
         }
         
         [HttpGet("{userName}", Name = "GetBasket")]
@@ -77,14 +76,35 @@ namespace Basket.API.Controllers
             }
 
             // send checkout event to rabbitmq
-            var eventMessage = _mapper.Map<BasketCheckoutEvent>(basketCheckout);
+            var eventMessage = new BasketCheckoutEvent(basketCheckout.CheckoutId ?? Guid.NewGuid())
+            {
+                UserName = basketCheckout.UserName,
+                TotalPrice = basket.TotalPrice,
+                FirstName = basketCheckout.FirstName,
+                LastName = basketCheckout.LastName,
+                EmailAddress = basketCheckout.EmailAddress,
+                AddressLine = basketCheckout.AddressLine,
+                Country = basketCheckout.Country,
+                State = basketCheckout.State,
+                ZipCode = basketCheckout.ZipCode,
+                CardName = basketCheckout.CardName,
+                CardNumber = basketCheckout.CardNumber,
+                Expiration = basketCheckout.Expiration,
+                CVV = basketCheckout.CVV,
+                PaymentMethod = basketCheckout.PaymentMethod
+            };
             eventMessage.TotalPrice = basket.TotalPrice;
-            await _publishEndpoint.Publish<BasketCheckoutEvent>(eventMessage);
+            eventMessage.Items = basket.Items.Select(item => new BasketCheckoutItem
+            {
+                ProductId = item.ProductId,
+                ProductName = item.ProductName,
+                Quantity = item.Quantity,
+                Color = item.Color,
+                Price = item.Price
+            }).ToList();
+            await _messageBus.SendAsync(eventMessage);
 
-            // remove the basket
-            await _repository.DeleteBasket(basket.UserName);
-
-            return Accepted();
+            return Accepted(new { checkoutId = eventMessage.Id, status = "Processing" });
         }
     }
 }

@@ -1,0 +1,97 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Ordering.Domain.Entities;
+using Ordering.Infrastructure.Persistence;
+using Ordering.API.Workflows;
+using Xunit;
+
+namespace Ordering.UnitTests
+{
+    public class CheckoutConcurrencyTests
+    {
+        [Fact]
+        public async Task Concurrent_inserts_with_same_checkout_id_create_only_one_order()
+        {
+            var connectionString = $"Data Source=checkout-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
+            await using var keepAlive = new SqliteConnection(connectionString);
+            await keepAlive.OpenAsync();
+
+            var options = new DbContextOptionsBuilder<OrderContext>()
+                .UseSqlite(connectionString)
+                .Options;
+
+            await using (var setup = new SqliteOrderContext(options))
+                await setup.Database.EnsureCreatedAsync();
+
+            var checkoutId = Guid.NewGuid();
+            var start = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            async Task<bool> TryInsertAsync()
+            {
+                await using var context = new SqliteOrderContext(options);
+                await start.Task;
+                context.Orders.Add(new Order
+                {
+                    CheckoutEventId = checkoutId,
+                    UserName = "concurrency-test",
+                    TotalPrice = 10m,
+                    FirstName = "Test",
+                    LastName = "User",
+                    EmailAddress = "test@example.invalid",
+                    AddressLine = "Test address",
+                    Country = "Test",
+                    State = "Test",
+                    ZipCode = "00000",
+                    CardName = "Test User",
+                    CardNumber = "0000",
+                    Expiration = "01/30",
+                    CVV = "000",
+                    PaymentMethod = 1
+                });
+
+                try
+                {
+                    await context.SaveChangesAsync();
+                    return true;
+                }
+                catch (DbUpdateException)
+                {
+                    return false;
+                }
+                catch (SqliteException)
+                {
+                    // SQLite may report a write lock when both writers arrive together.
+                    // The invariant under test is still that a single order survives.
+                    return false;
+                }
+            }
+
+            var first = TryInsertAsync();
+            var second = TryInsertAsync();
+            start.SetResult(true);
+            var outcomes = await Task.WhenAll(first, second);
+
+            await using var verify = new SqliteOrderContext(options);
+            Assert.Equal(1, outcomes.Count(inserted => inserted));
+            Assert.Equal(1, await verify.Orders.CountAsync(order => order.CheckoutEventId == checkoutId));
+        }
+
+        private sealed class SqliteOrderContext : OrderContext
+        {
+            public SqliteOrderContext(DbContextOptions<OrderContext> options) : base(options)
+            {
+            }
+
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
+                base.OnModelCreating(modelBuilder);
+                modelBuilder.Entity<CheckoutSaga>()
+                    .Property(saga => saga.ItemsJson)
+                    .HasColumnType("TEXT");
+            }
+        }
+    }
+}

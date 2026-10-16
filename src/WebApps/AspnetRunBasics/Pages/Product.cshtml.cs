@@ -27,10 +27,16 @@ namespace AspnetRunBasics
         [BindProperty(SupportsGet = true)]
         public string SelectedCategory { get; set; }
 
+        [BindProperty(SupportsGet = true)]
+        public string Search { get; set; }
+
         public async Task<IActionResult> OnGetAsync(string categoryName)
         {
-            var productList = await _catalogService.GetCatalog();
-            CategoryList = productList.Select(p => p.Category).Distinct();
+            var allProducts = await _catalogService.GetCatalog();
+            CategoryList = allProducts.Select(p => p.Category).Distinct();
+            var productList = string.IsNullOrWhiteSpace(Search)
+                ? allProducts
+                : await _catalogService.GetCatalogByName(Search.Trim());
 
             if (!string.IsNullOrWhiteSpace(categoryName))
             {

@@ -1,9 +1,12 @@
 ﻿using Ordering.Domain.Common;
 
+using System;
+
 namespace Ordering.Domain.Entities
 {
     public class Order : EntityBase
     {
+        public Guid? CheckoutEventId { get; set; }
         public string UserName { get; set; }
         public decimal TotalPrice { get; set; }
 

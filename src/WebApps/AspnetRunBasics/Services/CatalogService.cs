@@ -35,6 +35,12 @@ namespace AspnetRunBasics.Services
             return await response.ReadContentAs<List<CatalogModel>>();
         }
 
+        public async Task<IEnumerable<CatalogModel>> GetCatalogByName(string name)
+        {
+            var response = await _client.GetAsync($"/Catalog/GetProductByName/{Uri.EscapeDataString(name)}");
+            return await response.ReadContentAs<List<CatalogModel>>();
+        }
+
         public async Task<CatalogModel> CreateCatalog(CatalogModel model)
         {            
             var response = await _client.PostAsJson($"/Catalog", model);

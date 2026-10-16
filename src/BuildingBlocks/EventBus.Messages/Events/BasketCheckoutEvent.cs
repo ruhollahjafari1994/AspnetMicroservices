@@ -2,8 +2,15 @@
 {
     public class BasketCheckoutEvent : IntegrationBaseEvent
     {
+        public BasketCheckoutEvent() { }
+
+        public BasketCheckoutEvent(System.Guid checkoutId)
+            : base(checkoutId, System.DateTime.UtcNow)
+        {
+        }
         public string UserName { get; set; }
         public decimal TotalPrice { get; set; }
+        public System.Collections.Generic.List<BasketCheckoutItem> Items { get; set; } = new System.Collections.Generic.List<BasketCheckoutItem>();
 
         // BillingAddress
         public string FirstName { get; set; }

@@ -33,8 +33,6 @@ services:
         SA_PASSWORD: "SwN12345678"
         ACCEPT_EULA: "Y"
     restart: always
-    ports:
-        - "1433:1433"
 
   rabbitmq:
     container_name: rabbitmq
@@ -68,6 +66,7 @@ services:
     container_name: catalog.api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
       - "DatabaseSettings:ConnectionString=mongodb://catalogdb:27017"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
@@ -79,6 +78,8 @@ services:
     container_name: basket.api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - "ConnectionStrings:OrderingConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True"
       - "CacheSettings:ConnectionString=basketdb:6379"
       - "GrpcSettings:DiscountUrl=http://discount.grpc"
       - "EventBusSettings:HostAddress=amqp://guest:guest@rabbitmq:5672"
@@ -86,6 +87,7 @@ services:
     depends_on:
       - basketdb
       - rabbitmq
+      - orderdb
     ports:
       - "8001:80"
 
@@ -93,6 +95,7 @@ services:
     container_name: discount.api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
       - "DatabaseSettings:ConnectionString=Server=discountdb;Port=5432;Database=DiscountDb;User Id=admin;Password=admin1234;"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
@@ -104,6 +107,7 @@ services:
     container_name: discount.grpc
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
       - "DatabaseSettings:ConnectionString=Server=discountdb;Port=5432;Database=DiscountDb;User Id=admin;Password=admin1234;"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
@@ -115,7 +119,8 @@ services:
     container_name: ordering.api
     environment:
         - ASPNETCORE_ENVIRONMENT=Development
-        - "ConnectionStrings:OrderingConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678"            
+        - ASPNETCORE_URLS=http://+:80
+        - "ConnectionStrings:OrderingConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True"
         - "EventBusSettings:HostAddress=amqp://guest:guest@rabbitmq:5672"
         - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
@@ -128,6 +133,7 @@ services:
     container_name: ocelotapigw
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
         - catalog.api
@@ -141,6 +147,7 @@ services:
     container_name: shopping.aggregator
     environment:
         - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:80
         - "ApiSettings:CatalogUrl=http://catalog.api"
         - "ApiSettings:BasketUrl=http://basket.api"
         - "ApiSettings:OrderingUrl=http://ordering.api"
@@ -156,6 +163,7 @@ services:
     container_name: aspnetrunbasics
     environment:
         - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:80
         - "ApiSettings:GatewayAddress=http://ocelotapigw"
         - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
@@ -192,6 +200,7 @@ services:
     container_name: webstatus
     environment:
         - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:80
         - HealthChecksUI__HealthChecks__0__Name=Catalog Health Check
         - HealthChecksUI__HealthChecks__0__Uri=http://catalog.api/hc
         - HealthChecksUI__HealthChecks__1__Name=Basket Health Check

@@ -20,6 +20,10 @@
 <div class="container mb-4">
     <div class="row">
         <div class="col-12">
+            @if (TempData["OrderCancellationRequested"] != null)
+            {
+                <div class="alert alert-info">Cancellation requested. The basket will be restored when the workflow finishes.</div>
+            }
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
@@ -30,6 +34,7 @@
                             <th scope="col">Email</th>
                             <th scope="col">Address</th>
                             <th scope="col" class="text-right">TotalPrice</th>
+                            <th scope="col">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -43,6 +48,12 @@
                                 <td>@order.EmailAddress</td>
                                 <td>@order.AddressLine</td>
                                 <td class="text-right">@order.TotalPrice $</td>
+                                <td>
+                                    <form method="post" asp-page-handler="Cancel">
+                                        <input type="hidden" name="orderId" value="@order.Id" />
+                                        <button class="btn btn-sm btn-outline-danger" type="submit">Cancel order</button>
+                                    </form>
+                                </td>
                             </tr>
                         }
                     </tbody>

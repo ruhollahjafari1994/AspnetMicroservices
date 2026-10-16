@@ -6,6 +6,17 @@ using Ordering.API.Extensions;
 using Ordering.Infrastructure.Persistence;
 using Serilog;
 using Common.Logging;
+using EventBus.Messages.Common;
+using EventBus.Messages.Events;
+using JasperFx;
+using JasperFx.Resources;
+using Ordering.API.Workflows;
+using Wolverine;
+using Wolverine.RabbitMQ;
+using Wolverine.SqlServer;
+using Wolverine.EntityFrameworkCore;
+using Wolverine.RDBMS;
+using Wolverine.Configuration;
 
 namespace Ordering.API
 {
@@ -28,6 +39,49 @@ namespace Ordering.API
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .UseSerilog(SeriLogger.Configure)
+                .UseWolverine(options =>
+                {
+                    var rabbitAddress = System.Environment.GetEnvironmentVariable("EventBusSettings:HostAddress")
+                        ?? System.Environment.GetEnvironmentVariable("EventBusSettings__HostAddress")
+                        ?? "amqp://guest:guest@localhost:5672";
+                    var sqlConnection = System.Environment.GetEnvironmentVariable("ConnectionStrings:OrderingConnectionString")
+                        ?? System.Environment.GetEnvironmentVariable("ConnectionStrings__OrderingConnectionString")
+                        ?? "Server=localhost;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True";
+
+                    options.UseRabbitMq(new System.Uri(rabbitAddress)).AutoProvision();
+                    options.PersistMessagesWithSqlServer(sqlConnection, "wolverine");
+                    options.UseEntityFrameworkCoreTransactions();
+                    options.Policies.AutoApplyTransactions();
+                    options.Policies.UseDurableOutboxOnAllSendingEndpoints();
+                    options.MessagePartitioning
+                        .UseInferredMessageGrouping()
+                        .ByMessage<BasketCheckoutEvent>(message => message.Id.ToString());
+                    options.Discovery.IncludeAssembly(typeof(CheckoutSaga).Assembly);
+                    options.Services.AddResourceSetupOnStartup();
+
+                    options.ListenToRabbitQueue(EventBusConstants.BasketCheckoutQueue)
+                        .UseDurableInbox()
+                        .PartitionProcessingByGroupId(PartitionSlots.Five);
+                    options.ListenToRabbitQueue(EventBusConstants.OrderSagaQueue)
+                        .UseDurableInbox()
+                        .PartitionProcessingByGroupId(PartitionSlots.Five);
+                    options.ListenToRabbitQueue(EventBusConstants.OrderSagaEventsQueue)
+                        .UseDurableInbox()
+                        .PartitionProcessingByGroupId(PartitionSlots.Five);
+
+                    options.PublishMessage<CancelOrderSaga>()
+                        .ToRabbitQueue(EventBusConstants.OrderSagaQueue);
+                    options.PublishMessage<BeginCheckoutSaga>()
+                        .ToRabbitQueue(EventBusConstants.OrderSagaQueue);
+                    options.PublishMessage<ClearBasketForOrder>()
+                        .ToRabbitQueue(EventBusConstants.BasketWorkflowQueue);
+                    options.PublishMessage<RestoreBasketForOrder>()
+                        .ToRabbitQueue(EventBusConstants.BasketWorkflowQueue);
+                    options.PublishMessage<BasketClearedForOrder>()
+                        .ToRabbitQueue(EventBusConstants.OrderSagaEventsQueue);
+                    options.PublishMessage<BasketRestoredForOrder>()
+                        .ToRabbitQueue(EventBusConstants.OrderSagaEventsQueue);
+                })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();

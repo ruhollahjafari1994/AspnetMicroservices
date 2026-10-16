@@ -1,4 +1,3 @@
-﻿using AutoMapper;
 using MediatR;
 using Ordering.Application.Contracts.Persistence;
 using System;
@@ -11,18 +10,38 @@ namespace Ordering.Application.Features.Orders.Queries.GetOrdersList
     public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, List<OrdersVm>>
     {
         private readonly IOrderRepository _orderRepository;
-        private readonly IMapper _mapper;
-
-        public GetOrdersListQueryHandler(IOrderRepository orderRepository, IMapper mapper)
+        public GetOrdersListQueryHandler(IOrderRepository orderRepository)
         {
             _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
         public async Task<List<OrdersVm>> Handle(GetOrdersListQuery request, CancellationToken cancellationToken)
         {
             var orderList = await _orderRepository.GetOrdersByUserName(request.UserName);
-            return _mapper.Map<List<OrdersVm>>(orderList);
+            var orders = new List<OrdersVm>();
+            foreach (var order in orderList)
+            {
+                orders.Add(new OrdersVm
+                {
+                    Id = order.Id,
+                    UserName = order.UserName,
+                    TotalPrice = order.TotalPrice,
+                    FirstName = order.FirstName,
+                    LastName = order.LastName,
+                    EmailAddress = order.EmailAddress,
+                    AddressLine = order.AddressLine,
+                    Country = order.Country,
+                    State = order.State,
+                    ZipCode = order.ZipCode,
+                    CardName = order.CardName,
+                    CardNumber = order.CardNumber,
+                    Expiration = order.Expiration,
+                    CVV = order.CVV,
+                    PaymentMethod = order.PaymentMethod
+                });
+            }
+
+            return orders;
         }
     }
 }

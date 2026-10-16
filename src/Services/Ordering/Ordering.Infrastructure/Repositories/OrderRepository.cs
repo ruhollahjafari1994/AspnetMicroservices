@@ -21,5 +21,6 @@ namespace Ordering.Infrastructure.Repositories
                                 .ToListAsync();
             return orderList;
         }
+
     }
 }

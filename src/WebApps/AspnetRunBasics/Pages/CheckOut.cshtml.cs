@@ -25,6 +25,11 @@ namespace AspnetRunBasics
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (Order == null)
+            {
+                Order = new BasketCheckoutModel { CheckoutId = Guid.NewGuid() };
+            }
+
             var userName = "swn";
             Cart = await _basketService.GetBasket(userName);
 

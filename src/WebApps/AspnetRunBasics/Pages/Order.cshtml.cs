@@ -25,5 +25,12 @@ namespace AspnetRunBasics
 
             return Page();
         }
+
+        public async Task<IActionResult> OnPostCancelAsync(int orderId)
+        {
+            await _orderService.CancelOrder(orderId);
+            TempData["OrderCancellationRequested"] = true;
+            return RedirectToPage();
+        }
     }
 }

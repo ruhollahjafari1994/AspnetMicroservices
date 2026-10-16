@@ -8,6 +8,7 @@ namespace AspnetRunBasics.Services
     {
         Task<IEnumerable<CatalogModel>> GetCatalog();
         Task<IEnumerable<CatalogModel>> GetCatalogByCategory(string category);
+        Task<IEnumerable<CatalogModel>> GetCatalogByName(string name);
         Task<CatalogModel> GetCatalog(string id);
         Task<CatalogModel> CreateCatalog(CatalogModel model);
     }

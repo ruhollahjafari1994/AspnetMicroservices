@@ -3,12 +3,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Ordering.Application.Features.Orders.Commands.CheckoutOrder;
 using Ordering.Application.Features.Orders.Commands.UpdateOrder;
-using Ordering.Application.Features.Orders.Commands.DeleteOrder;
+using Ordering.Application.Contracts.Persistence;
 using Ordering.Application.Features.Orders.Queries.GetOrdersList;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using EventBus.Messages.Events;
+using EventBus.Messages.Common;
+using Wolverine;
 
 namespace Ordering.API.Controllers
 {
@@ -17,10 +20,14 @@ namespace Ordering.API.Controllers
     public class OrderController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IMessageBus _messageBus;
+        private readonly IOrderRepository _orders;
 
-        public OrderController(IMediator mediator)
+        public OrderController(IMediator mediator, IMessageBus messageBus, IOrderRepository orders)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _orders = orders ?? throw new ArgumentNullException(nameof(orders));
         }
         
         [HttpGet("{userName}", Name = "GetOrder")]
@@ -52,14 +59,20 @@ namespace Ordering.API.Controllers
         }
 
         [HttpDelete("{id}", Name = "DeleteOrder")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status202Accepted)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
         public async Task<ActionResult> DeleteOrder(int id)
         {
-            var command = new DeleteOrderCommand() { Id = id };
-            await _mediator.Send(command);
-            return NoContent();
+            var order = await _orders.GetByIdAsync(id);
+            if (order == null)
+                return NotFound();
+
+            if (!order.CheckoutEventId.HasValue)
+                return Conflict(new { orderId = id, message = "This legacy order has no basket snapshot and cannot be safely compensated." });
+
+            await _messageBus.SendAsync(new CancelOrderSaga { CheckoutSagaId = id });
+            return Accepted(new { orderId = id, status = "Cancellation requested" });
         }
     }
 }

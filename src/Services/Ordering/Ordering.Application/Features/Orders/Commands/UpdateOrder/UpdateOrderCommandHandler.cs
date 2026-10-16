@@ -1,4 +1,3 @@
-﻿using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Ordering.Application.Contracts.Persistence;
@@ -13,13 +12,11 @@ namespace Ordering.Application.Features.Orders.Commands.UpdateOrder
     public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand>
     {
         private readonly IOrderRepository _orderRepository;
-        private readonly IMapper _mapper;
         private readonly ILogger<UpdateOrderCommandHandler> _logger;
 
-        public UpdateOrderCommandHandler(IOrderRepository orderRepository, IMapper mapper, ILogger<UpdateOrderCommandHandler> logger)
+        public UpdateOrderCommandHandler(IOrderRepository orderRepository, ILogger<UpdateOrderCommandHandler> logger)
         {
             _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -31,7 +28,20 @@ namespace Ordering.Application.Features.Orders.Commands.UpdateOrder
                 throw new NotFoundException(nameof(Order), request.Id);
             }
             
-            _mapper.Map(request, orderToUpdate, typeof(UpdateOrderCommand), typeof(Order));
+            orderToUpdate.UserName = request.UserName;
+            orderToUpdate.TotalPrice = request.TotalPrice;
+            orderToUpdate.FirstName = request.FirstName;
+            orderToUpdate.LastName = request.LastName;
+            orderToUpdate.EmailAddress = request.EmailAddress;
+            orderToUpdate.AddressLine = request.AddressLine;
+            orderToUpdate.Country = request.Country;
+            orderToUpdate.State = request.State;
+            orderToUpdate.ZipCode = request.ZipCode;
+            orderToUpdate.CardName = request.CardName;
+            orderToUpdate.CardNumber = request.CardNumber;
+            orderToUpdate.Expiration = request.Expiration;
+            orderToUpdate.CVV = request.CVV;
+            orderToUpdate.PaymentMethod = request.PaymentMethod;
 
             await _orderRepository.UpdateAsync(orderToUpdate);
 
