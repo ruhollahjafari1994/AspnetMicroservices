@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
@@ -6,15 +6,24 @@ using System.Threading.Tasks;
 
 namespace Ordering.Application.Behaviours
 {
+    /// <summary>
+    /// Defines the UnhandledExceptionBehaviour type.
+    /// </summary>
     public class UnhandledExceptionBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     {
         private readonly ILogger<TRequest> _logger;
 
+        /// <summary>
+        /// Describes the UnhandledExceptionBehaviour operation.
+        /// </summary>
         public UnhandledExceptionBehaviour(ILogger<TRequest> logger)
         {
             _logger = logger;
         }
 
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, RequestHandlerDelegate<TResponse> next)
         {
             try

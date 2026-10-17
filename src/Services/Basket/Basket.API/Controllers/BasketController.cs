@@ -4,6 +4,7 @@ using Basket.API.Repositories.Interfaces;
 using EventBus.Messages.Events;
 using EventBus.Messages.Common;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Linq;
 using System.Net;
@@ -12,7 +13,11 @@ using Wolverine;
 
 namespace Basket.API.Controllers
 {
+    /// <summary>
+    /// Defines the BasketController type.
+    /// </summary>
     [ApiController]
+    [Authorize]
     [Route("api/v1/[controller]")]
     public class BasketController : ControllerBase
     {
@@ -20,6 +25,9 @@ namespace Basket.API.Controllers
         private readonly DiscountGrpcService _discountGrpcService;
         private readonly IMessageBus _messageBus;
 
+        /// <summary>
+        /// Describes the BasketController operation.
+        /// </summary>
         public BasketController(IBasketRepository repository, DiscountGrpcService discountGrpcService, IMessageBus messageBus)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
@@ -27,18 +35,26 @@ namespace Basket.API.Controllers
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
         }
         
+        /// <summary>
+        /// Describes the GetBasket operation.
+        /// </summary>
         [HttpGet("{userName}", Name = "GetBasket")]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<ShoppingCart>> GetBasket(string userName)
         {
+            if (!IsOwner(userName)) return Forbid();
             var basket = await _repository.GetBasket(userName);
             return Ok(basket ?? new ShoppingCart(userName));
         }
 
+        /// <summary>
+        /// Describes the UpdateBasket operation.
+        /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<ShoppingCart>> UpdateBasket([FromBody] ShoppingCart basket)
         {
+            if (basket == null || !IsOwner(basket.UserName)) return Forbid();
             // Communicate with Discount.Grpc and calculate lastest prices of products into sc
             foreach (var item in basket.Items)
             {
@@ -49,33 +65,37 @@ namespace Basket.API.Controllers
             return Ok(await _repository.UpdateBasket(basket));
         }
 
+        /// <summary>
+        /// Describes the DeleteBasket operation.
+        /// </summary>
         [HttpDelete("{userName}", Name = "DeleteBasket")]        
         [ProducesResponseType(typeof(void), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> DeleteBasket(string userName)
         {
+            if (!IsOwner(userName)) return Forbid();
             await _repository.DeleteBasket(userName);
             return Ok();
         }
 
+        /// <summary>
+        /// Describes the Checkout operation.
+        /// </summary>
         [Route("[action]")]
         [HttpPost]
         [ProducesResponseType((int)HttpStatusCode.Accepted)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> Checkout([FromBody] BasketCheckout basketCheckout)
         {
-            // get existing basket with total price            
-            // Set TotalPrice on basketCheckout eventMessage
-            // send checkout event to rabbitmq
-            // remove the basket
+            if (basketCheckout == null || !IsOwner(basketCheckout.UserName)) return Forbid();
+            // Cash on delivery is the only enabled option. Never accept a client-supplied
+            // card token until a real payment provider can verify it server side.
+            if (basketCheckout.PaymentMethod != 0)
+                return BadRequest(new { error = "Only cash on delivery is currently available." });
 
-            // get existing basket with total price
             var basket = await _repository.GetBasket(basketCheckout.UserName);
-            if (basket == null)
-            {
-                return BadRequest();
-            }
+            if (basket == null || basket.Items == null || basket.Items.Count == 0)
+                return BadRequest(new { error = "The basket is empty." });
 
-            // send checkout event to rabbitmq
             var eventMessage = new BasketCheckoutEvent(basketCheckout.CheckoutId ?? Guid.NewGuid())
             {
                 UserName = basketCheckout.UserName,
@@ -87,24 +107,24 @@ namespace Basket.API.Controllers
                 Country = basketCheckout.Country,
                 State = basketCheckout.State,
                 ZipCode = basketCheckout.ZipCode,
-                CardName = basketCheckout.CardName,
-                CardNumber = basketCheckout.CardNumber,
-                Expiration = basketCheckout.Expiration,
-                CVV = basketCheckout.CVV,
-                PaymentMethod = basketCheckout.PaymentMethod
+                PaymentMethod = basketCheckout.PaymentMethod,
+                Items = basket.Items.Select(item => new BasketCheckoutItem
+                {
+                    ProductId = item.ProductId,
+                    ProductName = item.ProductName,
+                    Quantity = item.Quantity,
+                    Color = item.Color,
+                    Price = item.Price
+                }).ToList()
             };
-            eventMessage.TotalPrice = basket.TotalPrice;
-            eventMessage.Items = basket.Items.Select(item => new BasketCheckoutItem
-            {
-                ProductId = item.ProductId,
-                ProductName = item.ProductName,
-                Quantity = item.Quantity,
-                Color = item.Color,
-                Price = item.Price
-            }).ToList();
-            await _messageBus.SendAsync(eventMessage);
 
+            await _messageBus.SendAsync(eventMessage);
             return Accepted(new { checkoutId = eventMessage.Id, status = "Processing" });
         }
+
+        /// <summary>
+        /// Describes the IsOwner operation.
+        /// </summary>
+        private bool IsOwner(string userName) => string.Equals(User.Identity?.Name, userName, StringComparison.OrdinalIgnoreCase);
     }
 }

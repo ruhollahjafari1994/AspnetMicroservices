@@ -13,6 +13,12 @@ services:
   orderdb:
     image: mcr.microsoft.com/mssql/server:2017-latest
 
+  identity.api:
+    image: ${DOCKER_REGISTRY-}identityapi
+    build:
+      context: .
+      dockerfile: Services/Identity/Identity.API/Dockerfile
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
 

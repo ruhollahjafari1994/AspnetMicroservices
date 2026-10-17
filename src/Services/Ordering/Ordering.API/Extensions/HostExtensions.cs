@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,8 +8,14 @@ using System;
 
 namespace Ordering.API.Extensions
 {
+    /// <summary>
+    /// Defines the HostExtensions type.
+    /// </summary>
     public static class HostExtensions
     {
+        /// <summary>
+        /// Documents this public member.
+        /// </summary>
         public static IHost MigrateDatabase<TContext>(this IHost host, Action<TContext, IServiceProvider> seeder) where TContext : DbContext
         {
             using (var scope = host.Services.CreateScope())

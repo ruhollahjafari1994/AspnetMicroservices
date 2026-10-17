@@ -1,4 +1,20 @@
 ﻿<!DOCTYPE html>
+@inject AspnetRunBasics.Services.IBasketService BasketService
+@{
+    var cartCount = 0;
+    if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(User.Identity.Name))
+    {
+        try
+        {
+            var currentBasket = await BasketService.GetBasket(User.Identity.Name);
+            cartCount = currentBasket?.Items?.Sum(item => item.Quantity) ?? 0;
+        }
+        catch
+        {
+            cartCount = 0;
+        }
+    }
+}
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -41,6 +57,18 @@
                         </li>
                     </ul>
 
+                    <div class="d-flex align-items-center mr-3">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <span class="text-light mr-2">@User.Identity.Name</span>
+                            <a class="btn btn-outline-light btn-sm mr-2" href="/login">Sign in as another user</a>
+                            <form method="post" action="/logout">@Html.AntiForgeryToken()<button class="btn btn-outline-light btn-sm">Log out</button></form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-light btn-sm" href="/login">Sign in / Register</a>
+                        }
+                    </div>
                     <form class="form-inline my-2 my-lg-0" method="get" asp-page="/Product">
                         <div class="input-group input-group-sm">
                             <input type="text" name="Search" class="form-control" placeholder="Search...">
@@ -52,7 +80,7 @@
                         </div>
                         <a class="btn btn-success btn-sm ml-3" asp-area="" asp-page="/Cart">
                             <i class="fa fa-shopping-cart"></i> Cart
-                            <span class="badge badge-light">3</span>
+                            <span class="badge badge-light">@cartCount</span>
                         </a>
                     </form>
                 </div>

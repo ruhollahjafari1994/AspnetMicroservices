@@ -25,6 +25,7 @@ A sample e-commerce platform built with independently deployable .NET services. 
 ```mermaid
 flowchart LR
     Customer[Customer] --> Web[Storefront<br/>Razor Pages]
+    Web -->|OIDC / PKCE sign-in| Identity[Identity.API]
     Web --> Gateway[Ocelot API Gateway]
     Gateway --> Catalog[Catalog API]
     Gateway --> Basket[Basket API]
@@ -40,6 +41,7 @@ flowchart LR
     Basket --> Redis[(Redis)]
     Discount --> PostgreSQL[(PostgreSQL)]
     Ordering --> SQL[(SQL Server)]
+    Identity --> IdentityDB[(IdentityDb / SQL Server)]
 ```
 
 ### Services and infrastructure
@@ -51,12 +53,35 @@ flowchart LR
 | `Discount.Grpc` | Discount lookup for basket pricing | gRPC, PostgreSQL, Dapper |
 | `Discount.API` | Discount HTTP API | ASP.NET Core, PostgreSQL |
 | `Ordering.API` | Orders, checkout processing, and cancellation Saga | ASP.NET Core, EF Core, SQL Server, Wolverine |
+| `Identity.API` | User accounts, roles, and OIDC token issuance | ASP.NET Core Identity, OpenIddict, EF Core, SQL Server |
 | `OcelotApiGw` | Routes storefront API requests | Ocelot |
 | `Shopping.Aggregator` | Aggregates responses for storefront scenarios | ASP.NET Core, `HttpClientFactory` |
 | `AspnetRunBasics` | Storefront UI | ASP.NET Core Razor Pages |
 | `WebStatus` | Health-check dashboard | ASP.NET Core Health Checks UI |
 | RabbitMQ | Inter-service message broker | RabbitMQ Management |
 | Elasticsearch / Kibana | Centralized logs and log exploration | Elastic Stack |
+
+## Authentication and authorization
+
+The storefront uses OpenID Connect Authorization Code flow with PKCE. The Identity service stores users and roles with ASP.NET Core Identity in the separate SQL Server database IdentityDb and issues JWT access tokens through OpenIddict. New registrations receive the Customer role. The storefront keeps an authentication cookie and forwards its access token to the APIs.
+
+- Identity endpoints: http://localhost:8009
+- Storefront login and account registration: http://localhost:8006/login
+- Catalog and discount reads remain public; write operations require the Administrator role.
+- Basket and order endpoints require an authenticated token and check that the requested user matches the token subject/name.
+- The order list and cancellation are restricted to the owning customer; direct order creation and editing are administrator-only.
+- Access tokens are validated by the APIs using Identity OpenID Connect discovery/JWKS metadata.
+
+To provision an administrator for local development, set these variables before starting Compose (PowerShell example):
+
+~~~powershell
+$env:IDENTITY_BOOTSTRAP_ADMIN_USERNAME = "store-admin"
+$env:IDENTITY_BOOTSTRAP_ADMIN_PASSWORD = "Use-A-Unique-Strong-Password"
+$env:IDENTITY_BOOTSTRAP_ADMIN_EMAIL = "admin@example.test"
+docker compose -f src/docker-compose.yml -f src/docker-compose.override.yml up -d --build
+~~~
+
+Leave the variables unset to disable administrator bootstrap; users can still register as customers. The Compose client secrets, HTTP issuer, development signing certificates, and SQL credentials are for local development only. For a deployed environment, use HTTPS, supply unique secrets through a secret manager, and configure persistent signing/encryption certificates.
 
 ## Checkout and cancellation workflow
 
@@ -163,7 +188,7 @@ Compose volumes preserve database and log data after containers stop. `docker co
 | Elasticsearch | <http://localhost:9200> |
 | Kibana | <http://localhost:5601> |
 | Web Status | <http://localhost:8007> |
-| pgAdmin | <http://localhost:5050> (`admin@aspnetrun.com` / `admin1234`) |
+| pgAdmin | <http://localhost:5050> (credentials are configured in `src/.env`) |
 | Portainer | <http://localhost:9000> |
 
 The order page is available at `/Order` in the storefront. Basket and Ordering health checks are exposed at `/hc` on their respective API ports.
@@ -213,7 +238,11 @@ src/
 
 Development connection strings, ports, and service dependencies are defined in [`src/docker-compose.override.yml`](src/docker-compose.override.yml). The compose configuration contains sample credentials intended for local development; replace them and move secrets to a secure secret store before deploying anywhere shared or public.
 
-The sample checkout model includes payment fields to demonstrate the request flow. Do not store or log raw card numbers or CVV values in a real payment system. Use a payment provider and tokenization, and keep sensitive payment data out of the order database.
+Raw card number, expiration, and CVV fields have been removed from the checkout UI, API contracts, integration event, order entity, and order query models. The SQL migration `20261017160000_RemoveRawPaymentData` drops the legacy columns and their stored values. Checkout currently supports cash on delivery; online card payments remain unavailable until a provider hosted/tokenized flow and server side payment verification are integrated.
+
+Local Compose credentials are read from `src/.env`. Copy `src/.env.example` to `src/.env` and fill in unique local values; `.env` is ignored by Git. For production, inject these values from a secrets manager rather than committing them or baking them into images.
+
+Basket uses its own `BasketMessagingDb` connection for Wolverine message durability, separated from Ordering's `OrderDb`. Basket data itself remains in Redis. SQL Server and RabbitMQ delivery can be made durable through Wolverine's inbox/outbox, but the Redis basket and SQL Server message store do not share a distributed transaction: basket clearing/restoration remains an eventual workflow and can lag during outages. Wolverine creates the required message schema in the database selected by its connection string; the database itself must be available. See the official [Wolverine SQL Server persistence guide](https://wolverinefx.net/guide/durability/sqlserver) and [resource management guide](https://wolverinefx.net/guide/durability/managing).
 
 ## Contributing
 

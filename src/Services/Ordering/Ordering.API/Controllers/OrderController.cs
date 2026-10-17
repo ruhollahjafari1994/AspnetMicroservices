@@ -1,6 +1,7 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Ordering.Application.Features.Orders.Commands.CheckoutOrder;
 using Ordering.Application.Features.Orders.Commands.UpdateOrder;
 using Ordering.Application.Contracts.Persistence;
@@ -15,7 +16,11 @@ using Wolverine;
 
 namespace Ordering.API.Controllers
 {
+    /// <summary>
+    /// Defines the OrderController type.
+    /// </summary>
     [ApiController]
+    [Authorize]
     [Route("api/v1/[controller]")]
     public class OrderController : ControllerBase
     {
@@ -23,6 +28,9 @@ namespace Ordering.API.Controllers
         private readonly IMessageBus _messageBus;
         private readonly IOrderRepository _orders;
 
+        /// <summary>
+        /// Describes the OrderController operation.
+        /// </summary>
         public OrderController(IMediator mediator, IMessageBus messageBus, IOrderRepository orders)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
@@ -30,17 +38,25 @@ namespace Ordering.API.Controllers
             _orders = orders ?? throw new ArgumentNullException(nameof(orders));
         }
         
+        /// <summary>
+        /// Describes the GetOrdersByUserName operation.
+        /// </summary>
         [HttpGet("{userName}", Name = "GetOrder")]
         [ProducesResponseType(typeof(IEnumerable<OrdersVm>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<IEnumerable<OrdersVm>>> GetOrdersByUserName(string userName)
         {
+            if (!string.Equals(User.Identity?.Name, userName, StringComparison.OrdinalIgnoreCase)) return Forbid();
             var query = new GetOrdersListQuery(userName);
             var orders = await _mediator.Send(query);
             return Ok(orders);
         }
 
         // testing purpose
+        /// <summary>
+        /// Describes the CheckoutOrder operation.
+        /// </summary>
         [HttpPost(Name = "CheckoutOrder")]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<ActionResult<int>> CheckoutOrder([FromBody] CheckoutOrderCommand command)
         {
@@ -48,7 +64,11 @@ namespace Ordering.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Describes the UpdateOrder operation.
+        /// </summary>
         [HttpPut(Name = "UpdateOrder")]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
@@ -58,6 +78,9 @@ namespace Ordering.API.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Describes the DeleteOrder operation.
+        /// </summary>
         [HttpDelete("{id}", Name = "DeleteOrder")]
         [ProducesResponseType(StatusCodes.Status202Accepted)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -67,6 +90,7 @@ namespace Ordering.API.Controllers
             var order = await _orders.GetByIdAsync(id);
             if (order == null)
                 return NotFound();
+            if (!string.Equals(order.UserName, User.Identity?.Name, StringComparison.OrdinalIgnoreCase)) return Forbid();
 
             if (!order.CheckoutEventId.HasValue)
                 return Conflict(new { orderId = id, message = "This legacy order has no basket snapshot and cannot be safely compensated." });

@@ -10,8 +10,14 @@ using Xunit;
 
 namespace Ordering.UnitTests
 {
+    /// <summary>
+    /// Defines the CheckoutConcurrencyTests type.
+    /// </summary>
     public class CheckoutConcurrencyTests
     {
+        /// <summary>
+        /// Describes the Concurrent_inserts_with_same_checkout_id_create_only_one_order operation.
+        /// </summary>
         [Fact]
         public async Task Concurrent_inserts_with_same_checkout_id_create_only_one_order()
         {
@@ -45,10 +51,7 @@ namespace Ordering.UnitTests
                     Country = "Test",
                     State = "Test",
                     ZipCode = "00000",
-                    CardName = "Test User",
-                    CardNumber = "0000",
-                    Expiration = "01/30",
-                    CVV = "000",
+                    PaymentIntentId = "pi_test_placeholder",
                     PaymentMethod = 1
                 });
 
@@ -79,12 +82,21 @@ namespace Ordering.UnitTests
             Assert.Equal(1, await verify.Orders.CountAsync(order => order.CheckoutEventId == checkoutId));
         }
 
+        /// <summary>
+        /// Defines the SqliteOrderContext type.
+        /// </summary>
         private sealed class SqliteOrderContext : OrderContext
         {
+            /// <summary>
+            /// Executes the SqliteOrderContext operation.
+            /// </summary>
             public SqliteOrderContext(DbContextOptions<OrderContext> options) : base(options)
             {
             }
 
+            /// <summary>
+            /// Describes the OnModelCreating operation.
+            /// </summary>
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                 base.OnModelCreating(modelBuilder);

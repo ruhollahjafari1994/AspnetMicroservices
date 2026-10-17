@@ -14,13 +14,31 @@ using System.Text.Json;
 
 namespace Ordering.API.Workflows
 {
+    /// <summary>
+    /// Defines the CheckoutSaga type.
+    /// </summary>
     public class CheckoutSaga : Saga, IRevisioned
     {
+        /// <summary>
+        /// Gets or sets the Id value.
+        /// </summary>
         public int Id { get; set; }
+        /// <summary>
+        /// Gets or sets the UserName value.
+        /// </summary>
         public string UserName { get; set; }
+        /// <summary>
+        /// Gets or sets the Status value.
+        /// </summary>
         public string Status { get; set; }
+        /// <summary>
+        /// Gets or sets the ItemsJson value.
+        /// </summary>
         public string ItemsJson { get; set; } = "[]";
 
+        /// <summary>
+        /// Documents this public member.
+        /// </summary>
         [NotMapped]
         public List<BasketCheckoutItem> Items
         {
@@ -28,6 +46,9 @@ namespace Ordering.API.Workflows
             set => ItemsJson = JsonSerializer.Serialize(value ?? new List<BasketCheckoutItem>());
         }
 
+        /// <summary>
+        /// Describes the Configure operation.
+        /// </summary>
         public static void Configure(HandlerChain chain)
         {
             chain.OnException<SagaConcurrencyException>()
@@ -37,11 +58,15 @@ namespace Ordering.API.Workflows
                     TimeSpan.FromMilliseconds(500));
         }
 
+        /// <summary>
+        /// Describes the static operation.
+        /// </summary>
         public static (CheckoutSaga, ClearBasketForOrder) Start(BeginCheckoutSaga message)
         {
+            var sagaId = message.CheckoutSagaId != 0 ? message.CheckoutSagaId : message.Id;
             var saga = new CheckoutSaga
             {
-                Id = message.Id,
+                Id = sagaId,
                 UserName = message.UserName,
                 Items = message.Items ?? new List<BasketCheckoutItem>(),
                 Status = "ClearingBasket"
@@ -54,12 +79,9 @@ namespace Ordering.API.Workflows
             });
         }
 
-        // A repeated checkout event can emit the same saga start again. Once the
-        // saga exists, the duplicate start must not clear the basket a second time.
-        public void Handle(BeginCheckoutSaga message)
-        {
-        }
-
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public RestoreBasketForOrder Handle(BasketClearedForOrder message)
         {
             if (Status == "CancelRequested")
@@ -73,6 +95,9 @@ namespace Ordering.API.Workflows
             return null;
         }
 
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public RestoreBasketForOrder Handle(CancelOrderSaga message)
         {
             if (Status == "Cancelled" || Status == "CancelRequested")
@@ -92,6 +117,9 @@ namespace Ordering.API.Workflows
             return CreateRestoreMessage();
         }
 
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public async Task Handle(BasketRestoredForOrder message, IOrderRepository orders, ILogger<CheckoutSaga> logger)
         {
             if (Status != "RestoringBasket")
@@ -105,6 +133,9 @@ namespace Ordering.API.Workflows
             logger.LogInformation("Order {OrderId} was compensated and its basket restored", Id);
         }
 
+        /// <summary>
+        /// Describes the NotFound operation.
+        /// </summary>
         public static async Task NotFound(
             CancelOrderSaga message,
             IOrderRepository orders,
@@ -132,6 +163,9 @@ namespace Ordering.API.Workflows
                 message.CheckoutSagaId);
         }
 
+        /// <summary>
+        /// Describes the CreateRestoreMessage operation.
+        /// </summary>
         private RestoreBasketForOrder CreateRestoreMessage() => new RestoreBasketForOrder
         {
             CheckoutSagaId = Id,

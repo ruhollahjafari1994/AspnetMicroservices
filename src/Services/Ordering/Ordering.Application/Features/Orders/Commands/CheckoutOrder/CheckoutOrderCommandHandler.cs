@@ -10,12 +10,18 @@ using System.Threading.Tasks;
 
 namespace Ordering.Application.Features.Orders.Commands.CheckoutOrder
 {
+    /// <summary>
+    /// Defines the CheckoutOrderCommandHandler type.
+    /// </summary>
     public class CheckoutOrderCommandHandler : IRequestHandler<CheckoutOrderCommand, int>
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IEmailService _emailService;
         private readonly ILogger<CheckoutOrderCommandHandler> _logger;
 
+        /// <summary>
+        /// Describes the CheckoutOrderCommandHandler operation.
+        /// </summary>
         public CheckoutOrderCommandHandler(IOrderRepository orderRepository, IEmailService emailService, ILogger<CheckoutOrderCommandHandler> logger)
         {
             _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
@@ -23,6 +29,9 @@ namespace Ordering.Application.Features.Orders.Commands.CheckoutOrder
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public async Task<int> Handle(CheckoutOrderCommand request, CancellationToken cancellationToken)
         {
             var orderEntity = new Order
@@ -37,10 +46,7 @@ namespace Ordering.Application.Features.Orders.Commands.CheckoutOrder
                 Country = request.Country,
                 State = request.State,
                 ZipCode = request.ZipCode,
-                CardName = request.CardName,
-                CardNumber = request.CardNumber,
-                Expiration = request.Expiration,
-                CVV = request.CVV,
+                PaymentIntentId = request.PaymentIntentId,
                 PaymentMethod = request.PaymentMethod
             };
             var newOrder = await _orderRepository.AddAsync(orderEntity);
@@ -52,6 +58,9 @@ namespace Ordering.Application.Features.Orders.Commands.CheckoutOrder
             return newOrder.Id;
         }
 
+        /// <summary>
+        /// Describes the SendMail operation.
+        /// </summary>
         private async Task SendMail(Order order)
         {            
             var email = new Email() { To = "ezozkme@gmail.com", Body = $"Order was created.", Subject = "Order was created" };

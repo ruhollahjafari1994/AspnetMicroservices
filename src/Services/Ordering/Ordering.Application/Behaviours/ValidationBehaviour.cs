@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using MediatR;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,16 +8,25 @@ using ValidationException = Ordering.Application.Exceptions.ValidationException;
 
 namespace Ordering.Application.Behaviours
 {
+    /// <summary>
+    /// Defines the ValidationBehaviour type.
+    /// </summary>
     public class ValidationBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
         private readonly IEnumerable<IValidator<TRequest>> _validators;
 
+        /// <summary>
+        /// Describes the ValidationBehaviour operation.
+        /// </summary>
         public ValidationBehaviour(IEnumerable<IValidator<TRequest>> validators)
         {
             _validators = validators;
         }
 
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, RequestHandlerDelegate<TResponse> next)
         {
             if (_validators.Any())

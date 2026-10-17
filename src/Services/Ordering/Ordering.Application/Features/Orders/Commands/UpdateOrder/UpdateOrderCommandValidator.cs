@@ -1,9 +1,15 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace Ordering.Application.Features.Orders.Commands.UpdateOrder
 {
+    /// <summary>
+    /// Defines the UpdateOrderCommandValidator type.
+    /// </summary>
     public class UpdateOrderCommandValidator : AbstractValidator<UpdateOrderCommand>
     {
+        /// <summary>
+        /// Describes the UpdateOrderCommandValidator operation.
+        /// </summary>
         public UpdateOrderCommandValidator()
         {
             RuleFor(p => p.UserName)

@@ -20,8 +20,14 @@ using Wolverine.Configuration;
 
 namespace Ordering.API
 {
+    /// <summary>
+    /// Defines the Program type.
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// Describes the Main operation.
+        /// </summary>
         public static void Main(string[] args)
         {
             CreateHostBuilder(args)
@@ -36,6 +42,12 @@ namespace Ordering.API
                 .Run();
         }
 
+        /// <summary>
+        /// Creates the host builder for the ordering service.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        /// <exception cref="System.InvalidOperationException"></exception>
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .UseSerilog(SeriLogger.Configure)
@@ -43,10 +55,10 @@ namespace Ordering.API
                 {
                     var rabbitAddress = System.Environment.GetEnvironmentVariable("EventBusSettings:HostAddress")
                         ?? System.Environment.GetEnvironmentVariable("EventBusSettings__HostAddress")
-                        ?? "amqp://guest:guest@localhost:5672";
+                        ?? throw new System.InvalidOperationException("EventBusSettings:HostAddress must be configured.");
                     var sqlConnection = System.Environment.GetEnvironmentVariable("ConnectionStrings:OrderingConnectionString")
                         ?? System.Environment.GetEnvironmentVariable("ConnectionStrings__OrderingConnectionString")
-                        ?? "Server=localhost;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True";
+                        ?? throw new System.InvalidOperationException("ConnectionStrings:OrderingConnectionString must be configured.");
 
                     options.UseRabbitMq(new System.Uri(rabbitAddress)).AutoProvision();
                     options.PersistMessagesWithSqlServer(sqlConnection, "wolverine");
@@ -57,6 +69,7 @@ namespace Ordering.API
                         .UseInferredMessageGrouping()
                         .ByMessage<BasketCheckoutEvent>(message => message.Id.ToString());
                     options.Discovery.IncludeAssembly(typeof(CheckoutSaga).Assembly);
+                    options.AddSagaType<CheckoutSaga>();
                     options.Services.AddResourceSetupOnStartup();
 
                     options.ListenToRabbitQueue(EventBusConstants.BasketCheckoutQueue)

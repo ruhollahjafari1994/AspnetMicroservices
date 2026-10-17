@@ -7,14 +7,23 @@ using System.Threading.Tasks;
 
 namespace Ordering.Application.Features.Orders.Queries.GetOrdersList
 {
+    /// <summary>
+    /// Defines the GetOrdersListQueryHandler type.
+    /// </summary>
     public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, List<OrdersVm>>
     {
         private readonly IOrderRepository _orderRepository;
+        /// <summary>
+        /// Describes the GetOrdersListQueryHandler operation.
+        /// </summary>
         public GetOrdersListQueryHandler(IOrderRepository orderRepository)
         {
             _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         }
 
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
         public async Task<List<OrdersVm>> Handle(GetOrdersListQuery request, CancellationToken cancellationToken)
         {
             var orderList = await _orderRepository.GetOrdersByUserName(request.UserName);
@@ -33,10 +42,7 @@ namespace Ordering.Application.Features.Orders.Queries.GetOrdersList
                     Country = order.Country,
                     State = order.State,
                     ZipCode = order.ZipCode,
-                    CardName = order.CardName,
-                    CardNumber = order.CardNumber,
-                    Expiration = order.Expiration,
-                    CVV = order.CVV,
+                    PaymentIntentId = order.PaymentIntentId,
                     PaymentMethod = order.PaymentMethod
                 });
             }

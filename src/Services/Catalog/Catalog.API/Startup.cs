@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Catalog.API.Data;
 using Catalog.API.Data.Interfaces;
 using Catalog.API.Repositories;
@@ -14,20 +15,43 @@ using Microsoft.OpenApi.Models;
 
 namespace Catalog.API
 {
+    /// <summary>
+    /// Defines the Startup type.
+    /// </summary>
     public class Startup
     {
+        /// <summary>
+        /// Describes the Startup operation.
+        /// </summary>
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
+        /// <summary>
+        /// Gets the Configuration value.
+        /// </summary>
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
+        /// <summary>
+        /// Describes the ConfigureServices operation.
+        /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddScoped<ICatalogContext, CatalogContext>();
             services.AddScoped<IProductRepository, ProductRepository>();
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            {
+                options.Authority = Configuration["Identity:Authority"];
+                options.RequireHttpsMetadata = Configuration.GetValue<bool>("Identity:RequireHttpsMetadata", true);
+                options.Audience = Configuration["Identity:Audience"] ?? "ecommerce_api";
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters.NameClaimType = "name";
+                options.TokenValidationParameters.RoleClaimType = "role";
+            });
+            services.AddAuthorization();
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -40,6 +64,9 @@ namespace Catalog.API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// <summary>
+        /// Describes the Configure operation.
+        /// </summary>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -51,6 +78,7 @@ namespace Catalog.API
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

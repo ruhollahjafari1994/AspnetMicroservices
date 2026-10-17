@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -6,8 +6,14 @@ using System.Threading.Tasks;
 
 namespace AspnetRunBasics.Extensions
 {
+    /// <summary>
+    /// Defines the HttpClientExtensions type.
+    /// </summary>
     public static class HttpClientExtensions
     {
+        /// <summary>
+        /// Documents this public member.
+        /// </summary>
         public static async Task<T> ReadContentAs<T>(this HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
@@ -18,6 +24,9 @@ namespace AspnetRunBasics.Extensions
             return JsonSerializer.Deserialize<T>(dataAsString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
 
+        /// <summary>
+        /// Documents this public member.
+        /// </summary>
         public static Task<HttpResponseMessage> PostAsJson<T>(this HttpClient httpClient, string url, T data)
         {
             var dataAsString = JsonSerializer.Serialize(data);
@@ -27,6 +36,9 @@ namespace AspnetRunBasics.Extensions
             return httpClient.PostAsync(url, content);
         }
 
+        /// <summary>
+        /// Documents this public member.
+        /// </summary>
         public static Task<HttpResponseMessage> PutAsJson<T>(this HttpClient httpClient, string url, T data)
         {
             var dataAsString = JsonSerializer.Serialize(data);

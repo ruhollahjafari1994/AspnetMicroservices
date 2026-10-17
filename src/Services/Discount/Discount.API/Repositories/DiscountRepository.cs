@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Discount.API.Entities;
 using Discount.API.Repositories.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -8,15 +8,24 @@ using System.Threading.Tasks;
 
 namespace Discount.API.Repositories
 {
+    /// <summary>
+    /// Defines the DiscountRepository type.
+    /// </summary>
     public class DiscountRepository : IDiscountRepository
     {
         private readonly IConfiguration _configuration;
 
+        /// <summary>
+        /// Describes the DiscountRepository operation.
+        /// </summary>
         public DiscountRepository(IConfiguration configuration)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }       
 
+        /// <summary>
+        /// Describes the GetDiscount operation.
+        /// </summary>
         public async Task<Coupon> GetDiscount(string productName)
         {            
             using var connection = new NpgsqlConnection(_configuration.GetValue<string>("DatabaseSettings:ConnectionString"));
@@ -29,6 +38,9 @@ namespace Discount.API.Repositories
             return coupon;
         }
 
+        /// <summary>
+        /// Describes the CreateDiscount operation.
+        /// </summary>
         public async Task<bool> CreateDiscount(Coupon coupon)
         {
             using var connection = new NpgsqlConnection(_configuration.GetValue<string>("DatabaseSettings:ConnectionString"));
@@ -44,6 +56,9 @@ namespace Discount.API.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Describes the UpdateDiscount operation.
+        /// </summary>
         public async Task<bool> UpdateDiscount(Coupon coupon)
         {
             using var connection = new NpgsqlConnection(_configuration.GetValue<string>("DatabaseSettings:ConnectionString"));
@@ -58,6 +73,9 @@ namespace Discount.API.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Describes the DeleteDiscount operation.
+        /// </summary>
         public async Task<bool> DeleteDiscount(string productName)
         {
             using var connection = new NpgsqlConnection(_configuration.GetValue<string>("DatabaseSettings:ConnectionString"));

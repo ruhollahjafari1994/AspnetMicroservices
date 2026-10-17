@@ -1,12 +1,18 @@
-﻿using Catalog.API.Entities;
+using Catalog.API.Entities;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Catalog.API.Data
 {
+    /// <summary>
+    /// Defines the CatalogContextSeed type.
+    /// </summary>
     public class CatalogContextSeed
     {
+        /// <summary>
+        /// Describes the SeedData operation.
+        /// </summary>
         public static void SeedData(IMongoCollection<Product> productCollection)
         {
             bool existProduct = productCollection.Find(p => true).Any();
@@ -16,6 +22,9 @@ namespace Catalog.API.Data
             }
         }
 
+        /// <summary>
+        /// Describes the GetPreconfiguredProducts operation.
+        /// </summary>
         private static IEnumerable<Product> GetPreconfiguredProducts()
         {
             return new List<Product>()

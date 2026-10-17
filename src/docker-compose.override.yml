@@ -18,8 +18,8 @@ services:
   discountdb:
     container_name: discountdb
     environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin1234
+      - POSTGRES_USER=${DISCOUNT_DB_USER:?Set DISCOUNT_DB_USER in .env}
+      - POSTGRES_PASSWORD=${DISCOUNT_DB_PASSWORD:?Set DISCOUNT_DB_PASSWORD in .env}
       - POSTGRES_DB=DiscountDb
     restart: always
     ports:
@@ -30,12 +30,32 @@ services:
   orderdb:
     container_name: orderdb
     environment:
-        SA_PASSWORD: "SwN12345678"
+        SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
         ACCEPT_EULA: "Y"
     restart: always
 
+  identity.api:
+    container_name: identity.api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - Identity__Issuer=http://identity.api/
+      - "ConnectionStrings:IdentityConnectionString=Server=orderdb;Database=IdentityDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+      - Identity__WebClientSecret=${WEB_OIDC_CLIENT_SECRET:?Set WEB_OIDC_CLIENT_SECRET in .env}
+      - Identity__BasketClientSecret=${BASKET_OIDC_CLIENT_SECRET:?Set BASKET_OIDC_CLIENT_SECRET in .env}
+      - Identity__BootstrapAdmin__UserName=${IDENTITY_BOOTSTRAP_ADMIN_USERNAME:-}
+      - Identity__BootstrapAdmin__Password=${IDENTITY_BOOTSTRAP_ADMIN_PASSWORD:-}
+      - Identity__BootstrapAdmin__Email=${IDENTITY_BOOTSTRAP_ADMIN_EMAIL:-}
+    depends_on:
+      - orderdb
+    ports:
+      - "8009:80"
+
   rabbitmq:
     container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
     restart: always
     ports:
         - "5672:5672"
@@ -44,8 +64,8 @@ services:
   pgadmin:
     container_name: pgadmin
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@aspnetrun.com
-      - PGADMIN_DEFAULT_PASSWORD=admin1234
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:?Set PGADMIN_EMAIL in .env}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env}
     restart: always
     ports:
         - "5050:80"
@@ -69,6 +89,9 @@ services:
       - ASPNETCORE_URLS=http://+:80
       - "DatabaseSettings:ConnectionString=mongodb://catalogdb:27017"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
+      - Identity__Authority=http://identity.api/
+      - Identity__RequireHttpsMetadata=false
+      - Identity__Audience=ecommerce_api
     depends_on:
       - catalogdb
     ports:
@@ -79,11 +102,14 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - "ConnectionStrings:OrderingConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True"
+      - "ConnectionStrings__BasketMessagingConnectionString=Server=orderdb;Database=BasketMessagingDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
       - "CacheSettings:ConnectionString=basketdb:6379"
       - "GrpcSettings:DiscountUrl=http://discount.grpc"
-      - "EventBusSettings:HostAddress=amqp://guest:guest@rabbitmq:5672"
+      - "EventBusSettings:HostAddress=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
+      - Identity__Authority=http://identity.api/
+      - Identity__RequireHttpsMetadata=false
+      - Identity__Audience=ecommerce_api
     depends_on:
       - basketdb
       - rabbitmq
@@ -96,8 +122,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - "DatabaseSettings:ConnectionString=Server=discountdb;Port=5432;Database=DiscountDb;User Id=admin;Password=admin1234;"
+      - "DatabaseSettings:ConnectionString=Server=discountdb;Port=5432;Database=DiscountDb;User Id=${DISCOUNT_DB_USER};Password=${DISCOUNT_DB_PASSWORD};"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
+      - Identity__Authority=http://identity.api/
+      - Identity__RequireHttpsMetadata=false
+      - Identity__Audience=ecommerce_api
     depends_on:
       - discountdb
     ports:
@@ -108,7 +137,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - "DatabaseSettings:ConnectionString=Server=discountdb;Port=5432;Database=DiscountDb;User Id=admin;Password=admin1234;"
+      - "DatabaseSettings:ConnectionString=Server=discountdb;Port=5432;Database=DiscountDb;User Id=${DISCOUNT_DB_USER};Password=${DISCOUNT_DB_PASSWORD};"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"
     depends_on:
       - discountdb
@@ -120,9 +149,12 @@ services:
     environment:
         - ASPNETCORE_ENVIRONMENT=Development
         - ASPNETCORE_URLS=http://+:80
-        - "ConnectionStrings:OrderingConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True"
-        - "EventBusSettings:HostAddress=amqp://guest:guest@rabbitmq:5672"
+        - "ConnectionStrings:OrderingConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+        - "EventBusSettings:HostAddress=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672"
         - "ElasticConfiguration:Uri=http://elasticsearch:9200"
+        - Identity__Authority=http://identity.api/
+        - Identity__RequireHttpsMetadata=false
+        - Identity__Audience=ecommerce_api
     depends_on:
         - orderdb
         - rabbitmq
@@ -152,6 +184,9 @@ services:
         - "ApiSettings:BasketUrl=http://basket.api"
         - "ApiSettings:OrderingUrl=http://ordering.api"
         - "ElasticConfiguration:Uri=http://elasticsearch:9200"
+        - Identity__Authority=http://identity.api/
+        - Identity__RequireHttpsMetadata=false
+        - Identity__Audience=ecommerce_api
     depends_on:
         - catalog.api
         - basket.api
@@ -166,7 +201,15 @@ services:
         - ASPNETCORE_URLS=http://+:80
         - "ApiSettings:GatewayAddress=http://ocelotapigw"
         - "ElasticConfiguration:Uri=http://elasticsearch:9200"
+        - Identity__Authority=http://identity.api/
+        - Identity__RequireHttpsMetadata=false
+        - Identity__Audience=ecommerce_api
+        - Identity__Issuer=http://identity.api/
+        - Identity__ClientId=aspnetrun-web
+        - Identity__ClientSecret=${WEB_OIDC_CLIENT_SECRET:?Set WEB_OIDC_CLIENT_SECRET in .env}
+        - Identity__PublicAuthority=http://localhost:8009
     depends_on:
+        - identity.api
         - ocelotapigw
         - catalog.api
         - basket.api

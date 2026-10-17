@@ -7,13 +7,22 @@ using System;
 
 namespace AspnetRunBasics
 {
+    /// <summary>
+    /// Defines the Program type.
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// Describes the Main operation.
+        /// </summary>
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();
         }
 
+        /// <summary>
+        /// Executes the CreateHostBuilder operation.
+        /// </summary>
         public static IHostBuilder CreateHostBuilder(string[] args) =>
            Host.CreateDefaultBuilder(args)
                .UseSerilog(SeriLogger.Configure)

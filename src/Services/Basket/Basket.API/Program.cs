@@ -12,13 +12,22 @@ using Wolverine.SqlServer;
 
 namespace Basket.API
 {
+    /// <summary>
+    /// Defines the Program type.
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// Describes the Main operation.
+        /// </summary>
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();
         }
 
+        /// <summary>
+        /// Executes the CreateHostBuilder operation.
+        /// </summary>
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .UseSerilog(SeriLogger.Configure)
@@ -26,16 +35,16 @@ namespace Basket.API
                 {
                     var rabbitAddress = System.Environment.GetEnvironmentVariable("EventBusSettings:HostAddress")
                         ?? System.Environment.GetEnvironmentVariable("EventBusSettings__HostAddress")
-                        ?? "amqp://guest:guest@localhost:5672";
-                    var sqlConnection = System.Environment.GetEnvironmentVariable("ConnectionStrings:OrderingConnectionString")
-                        ?? System.Environment.GetEnvironmentVariable("ConnectionStrings__OrderingConnectionString")
-                        ?? "Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678;TrustServerCertificate=True";
+                        ?? throw new System.InvalidOperationException("EventBusSettings:HostAddress must be configured.");
+                    var sqlConnection = System.Environment.GetEnvironmentVariable("ConnectionStrings__BasketMessagingConnectionString")
+                        ?? throw new System.InvalidOperationException("ConnectionStrings:BasketMessagingConnectionString must be configured.");
                     options.UseRabbitMq(new System.Uri(rabbitAddress))
                         .AutoProvision();
                     options.PersistMessagesWithSqlServer(
-                        sqlConnection, "basket_wolverine");
+                        sqlConnection, "wolverine");
                     options.Policies.UseDurableOutboxOnAllSendingEndpoints();
                     options.Services.AddResourceSetupOnStartup();
+                    options.Discovery.IncludeAssembly(typeof(Program).Assembly);
                     options.ListenToRabbitQueue(EventBusConstants.BasketWorkflowQueue).UseDurableInbox();
                     options.PublishMessage<BasketCheckoutEvent>()
                         .ToRabbitQueue(EventBusConstants.BasketCheckoutQueue);

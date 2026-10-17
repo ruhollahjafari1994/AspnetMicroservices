@@ -1,7 +1,8 @@
-﻿using Catalog.API.Entities;
+using Catalog.API.Entities;
 using Catalog.API.Repositories.Interfaces;
 using DnsClient.Internal;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -10,20 +11,31 @@ using System.Threading.Tasks;
 
 namespace Catalog.API.Controllers
 {
+    /// <summary>
+    /// Defines the CatalogController type.
+    /// </summary>
     [ApiController]
+    [Authorize]
     [Route("api/v1/[controller]")]
     public class CatalogController : ControllerBase
     {
         private readonly IProductRepository _repository;
         private readonly ILogger<CatalogController> _logger;
 
+        /// <summary>
+        /// Describes the CatalogController operation.
+        /// </summary>
         public CatalogController(IProductRepository repository, ILogger<CatalogController> logger)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        /// <summary>
+        /// Describes the GetProducts operation.
+        /// </summary>
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(IEnumerable<Product>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
@@ -31,7 +43,11 @@ namespace Catalog.API.Controllers
             return Ok(products);
         }
 
+        /// <summary>
+        /// Describes the GetProductById operation.
+        /// </summary>
         [HttpGet("{id:length(24)}", Name = "GetProduct")]
+        [AllowAnonymous]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(Product), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<Product>> GetProductById(string id)
@@ -47,8 +63,12 @@ namespace Catalog.API.Controllers
             return Ok(product);
         }
 
+        /// <summary>
+        /// Describes the GetProductByCategory operation.
+        /// </summary>
         [Route("[action]/{category}", Name = "GetProductByCategory")]
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(IEnumerable<Product>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<IEnumerable<Product>>> GetProductByCategory(string category)
         {
@@ -56,8 +76,12 @@ namespace Catalog.API.Controllers
             return Ok(products);
         }
 
+        /// <summary>
+        /// Describes the GetProductByName operation.
+        /// </summary>
         [Route("[action]/{name}", Name = "GetProductByName")]
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(IEnumerable<Product>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<IEnumerable<Product>>> GetProductByName(string name)
@@ -71,7 +95,11 @@ namespace Catalog.API.Controllers
             return Ok(items);
         }
 
+        /// <summary>
+        /// Describes the CreateProduct operation.
+        /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(typeof(Product), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<Product>> CreateProduct([FromBody] Product product)
         {
@@ -80,14 +108,22 @@ namespace Catalog.API.Controllers
             return CreatedAtRoute("GetProduct", new { id = product.Id }, product);
         }
 
+        /// <summary>
+        /// Describes the UpdateProduct operation.
+        /// </summary>
         [HttpPut]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(typeof(Product), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> UpdateProduct([FromBody] Product product)
         {
             return Ok(await _repository.UpdateProduct(product));
         }
 
-        [HttpDelete("{id:length(24)}", Name = "DeleteProduct")]        
+        /// <summary>
+        /// Describes the DeleteProductById operation.
+        /// </summary>
+        [HttpDelete("{id:length(24)}", Name = "DeleteProduct")]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(typeof(Product), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> DeleteProductById(string id)
         {

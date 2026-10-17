@@ -1,9 +1,15 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace Ordering.Application.Features.Orders.Commands.CheckoutOrder
 {
+    /// <summary>
+    /// Defines the CheckoutOrderCommandValidator type.
+    /// </summary>
     public class CheckoutOrderCommandValidator : AbstractValidator<CheckoutOrderCommand>
     {
+        /// <summary>
+        /// Describes the CheckoutOrderCommandValidator operation.
+        /// </summary>
         public CheckoutOrderCommandValidator()
         {
             RuleFor(p => p.UserName)

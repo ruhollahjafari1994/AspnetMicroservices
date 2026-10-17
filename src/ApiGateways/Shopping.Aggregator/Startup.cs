@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Common.Logging;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
@@ -17,22 +18,37 @@ using System.Net.Http;
 
 namespace Shopping.Aggregator
 {
+    /// <summary>
+    /// Defines the Startup type.
+    /// </summary>
     public class Startup
     {
+        /// <summary>
+        /// Describes the Startup operation.
+        /// </summary>
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
+        /// <summary>
+        /// Gets the Configuration value.
+        /// </summary>
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
+        /// <summary>
+        /// Describes the ConfigureServices operation.
+        /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddTransient<LoggingDelegatingHandler>();
+            services.AddHttpContextAccessor();
+            services.AddTransient<BearerTokenHandler>();
 
             services.AddHttpClient<ICatalogService, CatalogService>(c =>
                 c.BaseAddress = new Uri(Configuration["ApiSettings:CatalogUrl"]))
+                .AddHttpMessageHandler<BearerTokenHandler>()
                 .AddHttpMessageHandler<LoggingDelegatingHandler>()
                 .AddPolicyHandler(GetRetryPolicy())
                 .AddPolicyHandler(GetCircuitBreakerPolicy());
@@ -49,6 +65,17 @@ namespace Shopping.Aggregator
                 .AddPolicyHandler(GetRetryPolicy())
                 .AddPolicyHandler(GetCircuitBreakerPolicy());
 
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            {
+                options.Authority = Configuration["Identity:Authority"];
+                options.RequireHttpsMetadata = Configuration.GetValue<bool>("Identity:RequireHttpsMetadata", true);
+                options.Audience = Configuration["Identity:Audience"] ?? "ecommerce_api";
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters.NameClaimType = "name";
+                options.TokenValidationParameters.RoleClaimType = "role";
+            });
+            services.AddAuthorization();
+
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -62,6 +89,9 @@ namespace Shopping.Aggregator
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// <summary>
+        /// Describes the Configure operation.
+        /// </summary>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -73,6 +103,7 @@ namespace Shopping.Aggregator
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
@@ -86,6 +117,9 @@ namespace Shopping.Aggregator
             });
         }
 
+        /// <summary>
+        /// Describes the GetRetryPolicy operation.
+        /// </summary>
         private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
         {
             // In this case will wait for
@@ -106,6 +140,9 @@ namespace Shopping.Aggregator
                     });
         }
 
+        /// <summary>
+        /// Describes the GetCircuitBreakerPolicy operation.
+        /// </summary>
         private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
         {
             return HttpPolicyExtensions

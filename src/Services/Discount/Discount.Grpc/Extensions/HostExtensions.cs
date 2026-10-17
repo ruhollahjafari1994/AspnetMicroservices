@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,8 +8,14 @@ using System;
 
 namespace Discount.Grpc.Extensions
 {
+    /// <summary>
+    /// Defines the HostExtensions type.
+    /// </summary>
     public static class HostExtensions
     {
+        /// <summary>
+        /// Documents this public member.
+        /// </summary>
         public static IHost MigrateDatabase<TContext>(this IHost host)
         {
             using (var scope = host.Services.CreateScope())
@@ -47,6 +53,9 @@ namespace Discount.Grpc.Extensions
             return host;
         }
 
+        /// <summary>
+        /// Describes the ExecuteMigrations operation.
+        /// </summary>
         private static void ExecuteMigrations(IConfiguration configuration)
         {
             using var connection = new NpgsqlConnection(configuration.GetValue<string>("DatabaseSettings:ConnectionString"));

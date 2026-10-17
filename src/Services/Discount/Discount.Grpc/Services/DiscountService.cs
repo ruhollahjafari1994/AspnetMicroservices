@@ -8,17 +8,26 @@ using System.Threading.Tasks;
 
 namespace Discount.Grpc.Services
 {
+    /// <summary>
+    /// Defines the DiscountService type.
+    /// </summary>
     public class DiscountService : DiscountProtoService.DiscountProtoServiceBase
     {
         private readonly IDiscountRepository _repository;
         private readonly ILogger<DiscountService> _logger;
 
+        /// <summary>
+        /// Describes the DiscountService operation.
+        /// </summary>
         public DiscountService(IDiscountRepository repository, ILogger<DiscountService> logger)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        /// <summary>
+        /// Describes the GetDiscount operation.
+        /// </summary>
         public override async Task<CouponModel> GetDiscount(GetDiscountRequest request, ServerCallContext context)
         {
             var coupon = await _repository.GetDiscount(request.ProductName);
@@ -31,6 +40,9 @@ namespace Discount.Grpc.Services
             return ToCouponModel(coupon);
         }
 
+        /// <summary>
+        /// Describes the CreateDiscount operation.
+        /// </summary>
         public override async Task<CouponModel> CreateDiscount(CreateDiscountRequest request, ServerCallContext context)
         {
             var coupon = ToCoupon(request.Coupon);
@@ -41,6 +53,9 @@ namespace Discount.Grpc.Services
             return ToCouponModel(coupon);
         }
 
+        /// <summary>
+        /// Describes the UpdateDiscount operation.
+        /// </summary>
         public override async Task<CouponModel> UpdateDiscount(UpdateDiscountRequest request, ServerCallContext context)
         {
             var coupon = ToCoupon(request.Coupon);
@@ -51,6 +66,9 @@ namespace Discount.Grpc.Services
             return ToCouponModel(coupon);
         }
 
+        /// <summary>
+        /// Describes the DeleteDiscount operation.
+        /// </summary>
         public override async Task<DeleteDiscountResponse> DeleteDiscount(DeleteDiscountRequest request, ServerCallContext context)
         {
             var deleted = await _repository.DeleteDiscount(request.ProductName);
@@ -62,6 +80,9 @@ namespace Discount.Grpc.Services
             return response;
         }
 
+        /// <summary>
+        /// Describes the ToCoupon operation.
+        /// </summary>
         private static Coupon ToCoupon(CouponModel model)
         {
             return new Coupon
@@ -73,6 +94,9 @@ namespace Discount.Grpc.Services
             };
         }
 
+        /// <summary>
+        /// Describes the ToCouponModel operation.
+        /// </summary>
         private static CouponModel ToCouponModel(Coupon coupon)
         {
             return new CouponModel

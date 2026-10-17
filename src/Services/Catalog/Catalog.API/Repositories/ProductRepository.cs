@@ -1,4 +1,4 @@
-﻿using Catalog.API.Data.Interfaces;
+using Catalog.API.Data.Interfaces;
 using Catalog.API.Entities;
 using Catalog.API.Repositories.Interfaces;
 using MongoDB.Driver;
@@ -8,15 +8,24 @@ using System.Threading.Tasks;
 
 namespace Catalog.API.Repositories
 {
+    /// <summary>
+    /// Defines the ProductRepository type.
+    /// </summary>
     public class ProductRepository : IProductRepository
     {
         private readonly ICatalogContext _context;
 
+        /// <summary>
+        /// Describes the ProductRepository operation.
+        /// </summary>
         public ProductRepository(ICatalogContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <summary>
+        /// Describes the GetProducts operation.
+        /// </summary>
         public async Task<IEnumerable<Product>> GetProducts()
         {
             return await _context
@@ -25,6 +34,9 @@ namespace Catalog.API.Repositories
                             .ToListAsync();
         }
 
+        /// <summary>
+        /// Describes the GetProduct operation.
+        /// </summary>
         public async Task<Product> GetProduct(string id)
         {
             return await _context
@@ -33,6 +45,9 @@ namespace Catalog.API.Repositories
                            .FirstOrDefaultAsync();
         }
 
+        /// <summary>
+        /// Describes the GetProductByName operation.
+        /// </summary>
         public async Task<IEnumerable<Product>> GetProductByName(string name)
         {
             FilterDefinition<Product> filter = Builders<Product>.Filter.Regex(
@@ -45,6 +60,9 @@ namespace Catalog.API.Repositories
                             .ToListAsync();
         }
 
+        /// <summary>
+        /// Describes the GetProductByCategory operation.
+        /// </summary>
         public async Task<IEnumerable<Product>> GetProductByCategory(string categoryName)
         {
             FilterDefinition<Product> filter = Builders<Product>.Filter.Eq(p => p.Category, categoryName);
@@ -56,11 +74,17 @@ namespace Catalog.API.Repositories
         }
 
 
+        /// <summary>
+        /// Describes the CreateProduct operation.
+        /// </summary>
         public async Task CreateProduct(Product product)
         {
             await _context.Products.InsertOneAsync(product);
         }
 
+        /// <summary>
+        /// Describes the UpdateProduct operation.
+        /// </summary>
         public async Task<bool> UpdateProduct(Product product)
         {
             var updateResult = await _context
@@ -71,6 +95,9 @@ namespace Catalog.API.Repositories
                     && updateResult.ModifiedCount > 0;
         }
 
+        /// <summary>
+        /// Describes the DeleteProduct operation.
+        /// </summary>
         public async Task<bool> DeleteProduct(string id)
         {
             FilterDefinition<Product> filter = Builders<Product>.Filter.Eq(p => p.Id, id);

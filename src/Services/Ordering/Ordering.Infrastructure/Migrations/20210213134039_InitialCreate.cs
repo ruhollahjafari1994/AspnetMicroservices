@@ -1,10 +1,16 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Ordering.Infrastructure.Migrations
 {
+    /// <summary>
+    /// Defines the InitialCreate type.
+    /// </summary>
     public partial class InitialCreate : Migration
     {
+        /// <summary>
+        /// Describes the Up operation.
+        /// </summary>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -38,6 +44,9 @@ namespace Ordering.Infrastructure.Migrations
                 });
         }
 
+        /// <summary>
+        /// Describes the Down operation.
+        /// </summary>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

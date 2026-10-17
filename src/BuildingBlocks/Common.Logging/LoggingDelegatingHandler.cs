@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -7,15 +7,24 @@ using System.Threading.Tasks;
 
 namespace Common.Logging
 {
+    /// <summary>
+    /// Defines the LoggingDelegatingHandler type.
+    /// </summary>
     public class LoggingDelegatingHandler : DelegatingHandler
     {
         private readonly ILogger<LoggingDelegatingHandler> logger;
 
+        /// <summary>
+        /// Describes the LoggingDelegatingHandler operation.
+        /// </summary>
         public LoggingDelegatingHandler(ILogger<LoggingDelegatingHandler> logger)
         {
             this.logger = logger;
         }
 
+        /// <summary>
+        /// Describes the SendAsync operation.
+        /// </summary>
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             try

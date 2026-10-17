@@ -9,21 +9,31 @@ using System.Linq;
 using System.Threading.Tasks;
 using System;
 using Polly;
+using System.Threading;
 
 namespace Ordering.API.Workflows
 {
+    /// <summary>
+    /// Defines the BasketCheckoutHandler type.
+    /// </summary>
     public class BasketCheckoutHandler
     {
         private readonly IMediator _mediator;
         private readonly ILogger<BasketCheckoutHandler> _logger;
 
+        /// <summary>
+        /// Describes the BasketCheckoutHandler operation.
+        /// </summary>
         public BasketCheckoutHandler(IMediator mediator, ILogger<BasketCheckoutHandler> logger)
         {
             _mediator = mediator;
             _logger = logger;
         }
 
-        public async Task<BeginCheckoutSaga> Handle(BasketCheckoutEvent checkout, OrderContext orderContext)
+        /// <summary>
+        /// Describes the Handle operation.
+        /// </summary>
+        public async Task<BeginCheckoutSaga> Handle(BasketCheckoutEvent checkout, OrderContext orderContext, CancellationToken cancellationToken)
         {
             var retryPolicy = Policy
                 .Handle<Exception>(IsTransientSqlFailure)
@@ -39,14 +49,19 @@ namespace Ordering.API.Workflows
                         orderContext.ChangeTracker.Clear();
                     });
 
-            return await retryPolicy.ExecuteAsync(() => HandleOnce(checkout, orderContext));
+            return await retryPolicy.ExecuteAsync(
+                (_, token) => HandleOnce(checkout, orderContext, token),
+                new Context(), cancellationToken);
         }
 
-        private async Task<BeginCheckoutSaga> HandleOnce(BasketCheckoutEvent checkout, OrderContext orderContext)
+        /// <summary>
+        /// Describes the HandleOnce operation.
+        /// </summary>
+        private async Task<BeginCheckoutSaga> HandleOnce(BasketCheckoutEvent checkout, OrderContext orderContext, CancellationToken cancellationToken)
         {
             var existingOrder = await orderContext.Orders
                 .AsNoTracking()
-                .SingleOrDefaultAsync(order => order.CheckoutEventId == checkout.Id);
+                .SingleOrDefaultAsync(order => order.CheckoutEventId == checkout.Id, cancellationToken);
 
             var orderId = existingOrder?.Id;
             if (!orderId.HasValue)
@@ -65,21 +80,18 @@ namespace Ordering.API.Workflows
                         Country = checkout.Country,
                         State = checkout.State,
                         ZipCode = checkout.ZipCode,
-                        CardName = checkout.CardName,
-                        CardNumber = checkout.CardNumber,
-                        Expiration = checkout.Expiration,
-                        CVV = checkout.CVV,
+                        PaymentIntentId = checkout.PaymentIntentId,
                         PaymentMethod = checkout.PaymentMethod
-                    });
+                    }, cancellationToken);
                 }
-                catch (DbUpdateException)
+                catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
                 {
                     // A concurrent delivery with the same checkout id may have
                     // inserted the order first. Let only that unique-key race pass.
                     orderContext.ChangeTracker.Clear();
                     var concurrentOrder = await orderContext.Orders
                         .AsNoTracking()
-                        .SingleOrDefaultAsync(order => order.CheckoutEventId == checkout.Id);
+                        .SingleOrDefaultAsync(order => order.CheckoutEventId == checkout.Id, cancellationToken);
                     if (concurrentOrder == null)
                         throw;
 
@@ -89,6 +101,7 @@ namespace Ordering.API.Workflows
 
             return new BeginCheckoutSaga
             {
+                CheckoutSagaId = orderId.Value,
                 Id = orderId.Value,
                 UserName = checkout.UserName,
                 Items = checkout.Items.Select(item => new BasketCheckoutItem
@@ -102,6 +115,9 @@ namespace Ordering.API.Workflows
             };
         }
 
+        /// <summary>
+        /// Describes the IsTransientSqlFailure operation.
+        /// </summary>
         private static bool IsTransientSqlFailure(Exception exception)
         {
             while (exception != null)
@@ -110,6 +126,21 @@ namespace Ordering.API.Workflows
                     return true;
 
                 exception = exception.InnerException;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Describes the IsUniqueConstraintViolation operation.
+        /// </summary>
+        private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+        {
+            for (Exception current = exception; current != null; current = current.InnerException)
+            {
+                if (current is SqlException sqlException &&
+                    sqlException.Errors.Cast<SqlError>().Any(error => error.Number is 2601 or 2627))
+                    return true;
             }
 
             return false;

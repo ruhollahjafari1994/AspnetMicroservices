@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Sinks.Elasticsearch;
@@ -6,8 +6,14 @@ using System;
 
 namespace Common.Logging
 {
+    /// <summary>
+    /// Defines the SeriLogger type.
+    /// </summary>
     public static class SeriLogger
     {
+        /// <summary>
+        /// Describes the Configure member.
+        /// </summary>
         public static Action<HostBuilderContext, LoggerConfiguration> Configure =>
            (context, configuration) =>
            {

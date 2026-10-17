@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ordering.Application.Contracts.Infrastructure;
 using Ordering.Application.Models;
@@ -8,17 +8,32 @@ using System.Threading.Tasks;
 
 namespace Ordering.Infrastructure.Mail
 {
+    /// <summary>
+    /// Defines the EmailService type.
+    /// </summary>
     public class EmailService : IEmailService
     {
+        /// <summary>
+        /// Gets the _emailSettings value.
+        /// </summary>
         public EmailSettings _emailSettings { get; }
+        /// <summary>
+        /// Gets the _logger value.
+        /// </summary>
         public ILogger<EmailService> _logger { get; }
 
+        /// <summary>
+        /// Describes the EmailService operation.
+        /// </summary>
         public EmailService(IOptions<EmailSettings> mailSettings, ILogger<EmailService> logger)
         {
             _emailSettings = mailSettings.Value;
             _logger = logger;
         }
 
+        /// <summary>
+        /// Describes the SendEmail operation.
+        /// </summary>
         public async Task<bool> SendEmail(Email email)
         {
             var client = new SendGridClient(_emailSettings.ApiKey);
