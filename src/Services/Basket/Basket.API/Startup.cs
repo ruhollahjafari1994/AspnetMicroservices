@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Basket.API.GrpcServices;
 using Basket.API.Repositories;
 using Basket.API.Repositories.Interfaces;
+using Basket.API.Services;
 using Discount.Grpc.Protos;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
@@ -18,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using StackExchange.Redis;
 
 namespace Basket.API
 {
@@ -51,12 +53,20 @@ namespace Basket.API
                 options.Configuration = Configuration.GetValue<string>("CacheSettings:ConnectionString");
             });
 
+            var redisConnection = Configuration.GetValue<string>("CacheSettings:ConnectionString");
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+
             // General Configuration
-            services.AddScoped<IBasketRepository, BasketRepository>();
+            services.AddScoped<IBasketRepository>(provider => new BasketRepository(
+                provider.GetRequiredService<IConnectionMultiplexer>(),
+                Configuration["BasketSettings:KeyPrefix"] ?? "basket"));
             // Grpc Configuration
             services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>
                         (o => o.Address = new Uri(Configuration["GrpcSettings:DiscountUrl"]));
             services.AddScoped<DiscountGrpcService>();
+            services.AddHttpClient<IProductPricingService, CatalogProductPricingService>(client =>
+                client.BaseAddress = new Uri(Configuration["CatalogSettings:Url"]
+                    ?? throw new InvalidOperationException("CatalogSettings:Url must be configured.")));
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
             {

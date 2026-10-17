@@ -13,6 +13,7 @@ namespace Basket.API.Entities
         /// <summary>
         /// Gets or sets the CheckoutId value.
         /// </summary>
+        [System.ComponentModel.DataAnnotations.Required]
         public Guid? CheckoutId { get; set; }
         /// <summary>
         /// Gets or sets the UserName value.

@@ -22,6 +22,14 @@ A sample e-commerce platform built with independently deployable .NET services. 
 
 ## Architecture
 
+## Local setup and configuration
+
+Docker Compose reads local development credentials from `.env` at the repository root. Start with `Copy-Item .env.example .env` (PowerShell) or `cp .env.example .env` (Linux/macOS), replace every `replace-with-...` value with a strong local-only value, then run `docker compose -f src/docker-compose.yml -f src/docker-compose.override.yml up --build`. Do not commit `.env`.
+
+The required local variables are `MSSQL_SA_PASSWORD`, `DISCOUNT_DB_USER`, `DISCOUNT_DB_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `WEB_OIDC_CLIENT_SECRET`, `BASKET_OIDC_CLIENT_SECRET`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`. The bootstrap admin variables are optional and only seed a local development account. Compose uses an HTTP issuer and disables HTTPS metadata only for its Development containers; production must configure HTTPS identity issuer/authority values and inject database, broker, and OIDC secrets from a secret manager. Never deploy the development issuer or example credentials.
+
+Testcontainers integration tests require a running Docker engine. Run the full suite with `dotnet test` from the repository root.
+
 ```mermaid
 flowchart LR
     Customer[Customer] --> Web[Storefront<br/>Razor Pages]

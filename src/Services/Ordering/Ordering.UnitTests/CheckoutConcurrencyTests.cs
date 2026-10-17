@@ -16,6 +16,29 @@ namespace Ordering.UnitTests
     public class CheckoutConcurrencyTests
     {
         /// <summary>
+        /// Ensures audit timestamps assigned by the context use UTC for inserts and updates.
+        /// </summary>
+        [Fact]
+        public async Task Audit_timestamps_are_utc()
+        {
+            var connectionString = $"Data Source=audit-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
+            await using var keepAlive = new SqliteConnection(connectionString);
+            await keepAlive.OpenAsync();
+            var options = new DbContextOptionsBuilder<OrderContext>().UseSqlite(connectionString).Options;
+            await using (var setup = new SqliteOrderContext(options)) await setup.Database.EnsureCreatedAsync();
+
+            await using var context = new SqliteOrderContext(options);
+            var order = new Order { UserName = "audit-test", EmailAddress = "test@example.invalid" };
+            context.Orders.Add(order);
+            await context.SaveChangesAsync();
+            Assert.Equal(DateTimeKind.Utc, order.CreatedDate.Kind);
+
+            order.UserName = "audit-test-updated";
+            await context.SaveChangesAsync();
+            Assert.Equal(DateTimeKind.Utc, order.LastModifiedDate.Value.Kind);
+        }
+
+        /// <summary>
         /// Describes the Concurrent_inserts_with_same_checkout_id_create_only_one_order operation.
         /// </summary>
         [Fact]

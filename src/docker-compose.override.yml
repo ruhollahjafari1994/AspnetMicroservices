@@ -104,6 +104,7 @@ services:
       - ASPNETCORE_URLS=http://+:80
       - "ConnectionStrings__BasketMessagingConnectionString=Server=orderdb;Database=BasketMessagingDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
       - "CacheSettings:ConnectionString=basketdb:6379"
+      - "CatalogSettings:Url=http://catalog.api"
       - "GrpcSettings:DiscountUrl=http://discount.grpc"
       - "EventBusSettings:HostAddress=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672"
       - "ElasticConfiguration:Uri=http://elasticsearch:9200"

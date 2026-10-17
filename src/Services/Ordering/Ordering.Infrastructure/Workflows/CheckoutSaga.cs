@@ -24,6 +24,10 @@ namespace Ordering.API.Workflows
         /// </summary>
         public int Id { get; set; }
         /// <summary>
+        /// Gets or sets the idempotency ID used to reserve and compensate the basket.
+        /// </summary>
+        public Guid CheckoutId { get; set; }
+        /// <summary>
         /// Gets or sets the UserName value.
         /// </summary>
         public string UserName { get; set; }
@@ -67,6 +71,7 @@ namespace Ordering.API.Workflows
             var saga = new CheckoutSaga
             {
                 Id = sagaId,
+                CheckoutId = message.CheckoutId,
                 UserName = message.UserName,
                 Items = message.Items ?? new List<BasketCheckoutItem>(),
                 Status = "ClearingBasket"
@@ -74,6 +79,7 @@ namespace Ordering.API.Workflows
 
             return (saga, new ClearBasketForOrder
             {
+                CheckoutId = saga.CheckoutId,
                 CheckoutSagaId = saga.Id,
                 UserName = saga.UserName
             });
@@ -112,7 +118,7 @@ namespace Ordering.API.Workflows
             if (Status != "Confirmed" && Status != "RestoringBasket")
                 return null;
 
-            // Repeating restore is safe because Basket.API overwrites the same Redis basket.
+            // Repeating restore is safe because Basket API tracks checkout completion atomically.
             Status = "RestoringBasket";
             return CreateRestoreMessage();
         }
@@ -168,6 +174,7 @@ namespace Ordering.API.Workflows
         /// </summary>
         private RestoreBasketForOrder CreateRestoreMessage() => new RestoreBasketForOrder
         {
+            CheckoutId = CheckoutId,
             CheckoutSagaId = Id,
             UserName = UserName,
             Items = Items

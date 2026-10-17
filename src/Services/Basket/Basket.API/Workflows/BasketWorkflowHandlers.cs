@@ -1,51 +1,64 @@
-using Basket.API.Entities;
 using Basket.API.Repositories.Interfaces;
 using EventBus.Messages.Events;
 using Microsoft.Extensions.Logging;
-using System.Linq;
+using System;
 using System.Threading.Tasks;
 
 namespace Basket.API.Workflows
 {
     /// <summary>
-    /// Defines the BasketWorkflowHandler type.
+    /// Applies idempotent basket reservation transitions requested by the ordering saga.
     /// </summary>
-    public class BasketWorkflowHandler
+    public sealed class BasketWorkflowHandler
     {
         /// <summary>
-        /// Describes the Handle operation.
+        /// Commits a checkout reservation after order creation.
         /// </summary>
         public async Task<BasketClearedForOrder> Handle(
             ClearBasketForOrder command,
             IBasketRepository baskets,
             ILogger<BasketWorkflowHandler> logger)
         {
-            logger.LogInformation("Clearing basket for checkout saga {CheckoutSagaId} and user {UserName}",
-                command.CheckoutSagaId, command.UserName);
-            await baskets.DeleteBasket(command.UserName);
-            logger.LogInformation("Basket cleared for checkout saga {CheckoutSagaId}", command.CheckoutSagaId);
-            return new BasketClearedForOrder { CheckoutSagaId = command.CheckoutSagaId };
+            if (command.CheckoutId == Guid.Empty)
+            {
+                logger.LogWarning("Ignoring legacy basket clear command without a checkout ID for saga {CheckoutSagaId}",
+                    command.CheckoutSagaId);
+            }
+            else if (!await baskets.CompleteCheckout(command.UserName, command.CheckoutId))
+            {
+                // A late clear after successful compensation must never remove the restored basket.
+                logger.LogInformation("Checkout reservation {CheckoutId} was not active when clear arrived", command.CheckoutId);
+            }
+
+            return new BasketClearedForOrder
+            {
+                CheckoutId = command.CheckoutId,
+                CheckoutSagaId = command.CheckoutSagaId
+            };
         }
 
         /// <summary>
-        /// Describes the Handle operation.
+        /// Restores the saved checkout snapshot while retaining any items added since checkout began.
         /// </summary>
-        public async Task<BasketRestoredForOrder> Handle(RestoreBasketForOrder command, IBasketRepository baskets)
+        public async Task<BasketRestoredForOrder> Handle(
+            RestoreBasketForOrder command,
+            IBasketRepository baskets,
+            ILogger<BasketWorkflowHandler> logger)
         {
-            var basket = new ShoppingCart(command.UserName)
+            if (command.CheckoutId == Guid.Empty ||
+                !await baskets.RestoreCheckout(command.UserName, command.CheckoutId))
             {
-                Items = command.Items.Select(item => new ShoppingCartItem
-                {
-                    ProductId = item.ProductId,
-                    ProductName = item.ProductName,
-                    Quantity = item.Quantity,
-                    Color = item.Color,
-                    Price = item.Price
-                }).ToList()
-            };
+                logger.LogWarning("Checkout reservation {CheckoutId} could not be restored", command.CheckoutId);
+                throw new InvalidOperationException("The checkout reservation is missing or cannot be restored.");
+            }
 
-            await baskets.UpdateBasket(basket);
-            return new BasketRestoredForOrder { CheckoutSagaId = command.CheckoutSagaId };
+            logger.LogInformation("Restored basket for checkout {CheckoutId} and saga {CheckoutSagaId}",
+                command.CheckoutId, command.CheckoutSagaId);
+            return new BasketRestoredForOrder
+            {
+                CheckoutId = command.CheckoutId,
+                CheckoutSagaId = command.CheckoutSagaId
+            };
         }
     }
 }

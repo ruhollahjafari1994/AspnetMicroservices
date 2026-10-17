@@ -40,5 +40,12 @@ namespace Catalog.API.Entities
         /// Gets or sets the Price value.
         /// </summary>
         public decimal Price { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this product can currently be purchased.
+        /// Missing values on existing catalog records default to available.
+        /// </summary>
+        [BsonDefaultValue(true)]
+        public bool IsAvailable { get; set; } = true;
     }
 }

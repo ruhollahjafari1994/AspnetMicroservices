@@ -17,6 +17,11 @@ namespace Basket.API.Entities
         public List<ShoppingCartItem> Items { get; set; } = new List<ShoppingCartItem>();
 
         /// <summary>
+        /// Gets or sets the Redis-backed optimistic concurrency version.
+        /// </summary>
+        public long Version { get; set; }
+
+        /// <summary>
         /// Describes the ShoppingCart operation.
         /// </summary>
         public ShoppingCart()
@@ -32,7 +37,9 @@ namespace Basket.API.Entities
         }
         
         /// <summary>
-        /// Documents this public member.
+        /// <summary>
+        /// Calculates the extended item prices in the basket.
+        /// </summary>
         /// </summary>
         public decimal TotalPrice 
         { 

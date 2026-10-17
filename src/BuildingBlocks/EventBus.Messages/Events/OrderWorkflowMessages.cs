@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 namespace EventBus.Messages.Events
 {
@@ -35,6 +36,10 @@ namespace EventBus.Messages.Events
     /// </summary>
     public class BeginCheckoutSaga
     {
+        /// <summary>
+        /// Gets or sets the idempotency ID for the checkout request.
+        /// </summary>
+        public Guid CheckoutId { get; set; }
         // Explicit Wolverine saga correlation identity.
         /// <summary>
         /// Gets or sets the CheckoutSagaId value.
@@ -62,6 +67,10 @@ namespace EventBus.Messages.Events
     public class ClearBasketForOrder
     {
         /// <summary>
+        /// Gets or sets the checkout id whose basket reservation should be committed.
+        /// </summary>
+        public Guid CheckoutId { get; set; }
+        /// <summary>
         /// Gets or sets the CheckoutSagaId value.
         /// </summary>
         public int CheckoutSagaId { get; set; }
@@ -80,6 +89,10 @@ namespace EventBus.Messages.Events
         /// Gets or sets the CheckoutSagaId value.
         /// </summary>
         public int CheckoutSagaId { get; set; }
+        /// <summary>
+        /// Gets or sets the checkout id acknowledged by Basket API.
+        /// </summary>
+        public Guid CheckoutId { get; set; }
     }
 
     /// <summary>
@@ -103,6 +116,10 @@ namespace EventBus.Messages.Events
     public class RestoreBasketForOrder
     {
         /// <summary>
+        /// Gets or sets the checkout id whose reservation should be restored.
+        /// </summary>
+        public Guid CheckoutId { get; set; }
+        /// <summary>
         /// Gets or sets the CheckoutSagaId value.
         /// </summary>
         public int CheckoutSagaId { get; set; }
@@ -125,5 +142,9 @@ namespace EventBus.Messages.Events
         /// Gets or sets the CheckoutSagaId value.
         /// </summary>
         public int CheckoutSagaId { get; set; }
+        /// <summary>
+        /// Gets or sets the checkout id acknowledged by Basket API.
+        /// </summary>
+        public Guid CheckoutId { get; set; }
     }
 }

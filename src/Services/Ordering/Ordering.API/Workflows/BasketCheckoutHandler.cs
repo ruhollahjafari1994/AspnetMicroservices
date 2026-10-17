@@ -101,6 +101,7 @@ namespace Ordering.API.Workflows
 
             return new BeginCheckoutSaga
             {
+                CheckoutId = checkout.Id,
                 CheckoutSagaId = orderId.Value,
                 Id = orderId.Value,
                 UserName = checkout.UserName,

@@ -42,16 +42,17 @@ namespace Ordering.Infrastructure.Persistence
         /// </summary>
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
+            var utcNow = DateTime.UtcNow;
             foreach (var entry in ChangeTracker.Entries<EntityBase>())
             {
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        entry.Entity.CreatedDate = DateTime.Now;
+                        entry.Entity.CreatedDate = utcNow;
                         entry.Entity.CreatedBy = "system";
                         break;
                     case EntityState.Modified:
-                        entry.Entity.LastModifiedDate = DateTime.Now;
+                        entry.Entity.LastModifiedDate = utcNow;
                         entry.Entity.LastModifiedBy = "system";
                         break;
                 }
