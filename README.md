@@ -137,7 +137,7 @@ If cancellation arrives before the Saga start message, Ordering schedules anothe
 - Saga state uses EF Core optimistic concurrency through its version field. Wolverine retries a `SagaConcurrencyException` with short cooldowns.
 - Durable Inbox and Outbox are enabled for Wolverine message processing and outgoing endpoints.
 - The unique checkout index protects against duplicate order creation even if messages are delivered more than once.
-- Basket operations are replay-safe for this workflow: clearing a basket more than once is harmless, and restoring the same snapshot overwrites the basket with the same contents.
+- Basket operations are replay-safe for this workflow: clearing a basket more than once is harmless, and compensation merges the reserved snapshot with items added after checkout began. The checkout reservation is marked restored atomically so repeated compensation does not add the snapshot twice.
 
 These mechanisms do not create a single transaction across SQL Server, Redis, and RabbitMQ. Cross-service consistency is achieved through durable messages, Saga state, acknowledgements, and compensation.
 
@@ -205,7 +205,7 @@ The order page is available at `/Order` in the storefront. Basket and Ordering h
 
 ## Run tests
 
-The Ordering concurrency test uses a temporary SQLite database; it does not require Docker or an external SQL Server instance.
+The Ordering integration tests use SQL Server and RabbitMQ containers through Testcontainers. Docker must be running before you execute them.
 
 ```powershell
 dotnet test src/Services/Ordering/Ordering.UnitTests/Ordering.UnitTests.csproj
@@ -217,7 +217,7 @@ Run all tests discovered by the solution:
 dotnet test src/aspnetrun-microservices.sln
 ```
 
-The concurrency test races two inserts with the same checkout ID and verifies that the unique index allows only one order to persist.
+The Ordering tests exercise SQL Server's unique checkout index, concurrent duplicate message handling, Saga transitions, and RabbitMQ redelivery. Basket tests also use a Redis container to verify checkout reservation and compensation behavior.
 
 ## Repository layout
 
