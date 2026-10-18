@@ -28,6 +28,8 @@ Docker Compose reads local development credentials from `.env` at the repository
 
 The required local variables are `MSSQL_SA_PASSWORD`, `DISCOUNT_DB_USER`, `DISCOUNT_DB_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `WEB_OIDC_CLIENT_SECRET`, `BASKET_OIDC_CLIENT_SECRET`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`. The bootstrap admin variables are optional and only seed a local development account. Compose uses an HTTP issuer and disables HTTPS metadata only for its Development containers; production must configure HTTPS identity issuer/authority values and inject database, broker, and OIDC secrets from a secret manager. Never deploy the development issuer or example credentials.
 
+All .NET projects target .NET 8 and Dockerfiles use the .NET 8 SDK/runtime images. Use a .NET 8 SDK installation and a Visual Studio release that supports .NET 8.
+
 Testcontainers integration tests require a running Docker engine. Run the full suite with `dotnet test` from the repository root.
 
 ```mermaid

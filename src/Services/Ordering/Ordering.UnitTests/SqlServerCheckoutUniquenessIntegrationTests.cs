@@ -130,4 +130,23 @@ public sealed class SqlServerCheckoutUniquenessIntegrationTests : IAsyncLifetime
         await using var verify = new OrderContext(options);
         Assert.Equal(1, await verify.Orders.CountAsync(order => order.CheckoutEventId == checkoutId));
     }
+
+    /// <summary>
+    /// Ensures persisted audit timestamps are generated with UTC values.
+    /// </summary>
+    [Fact]
+    public async Task OrderContext_AuditTimestampsUseUtc()
+    {
+        var options = new DbContextOptionsBuilder<OrderContext>().UseSqlServer(_sqlServer.GetConnectionString()).Options;
+        await using (var setup = new OrderContext(options)) await setup.Database.EnsureCreatedAsync();
+        await using var context = new OrderContext(options);
+        var order = new Order { UserName = "audit-test", EmailAddress = "test@example.invalid" };
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        Assert.Equal(DateTimeKind.Utc, order.CreatedDate.Kind);
+
+        order.UserName = "audit-test-updated";
+        await context.SaveChangesAsync();
+        Assert.Equal(DateTimeKind.Utc, order.LastModifiedDate.Value.Kind);
+    }
 }

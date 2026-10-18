@@ -48,8 +48,8 @@ public sealed class BasketReservationIntegrationTests : IAsyncLifetime
             firstInstance.ReserveBasket(user, Guid.NewGuid()),
             secondInstance.ReserveBasket(user, Guid.NewGuid()));
 
-        Assert.Single(reservations.Where(result => result.State == BasketCheckoutReservationState.Reserved));
-        Assert.Single(reservations.Where(result => result.State == BasketCheckoutReservationState.Busy));
+        Assert.Single(reservations, result => result.State == BasketCheckoutReservationState.Reserved);
+        Assert.Single(reservations, result => result.State == BasketCheckoutReservationState.Busy);
     }
 
     /// <summary>
